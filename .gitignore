@@ -1,0 +1,26 @@
+# VisualStudio general
+.vs/
+*.suo
+*.user
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+
+# Rider
+.idea/
+
+# User Secrets
+secrets.json
+user-secrets/
+
+# Other
+*.swp
+*.userosscache
+
+# Paquetes NuGet
+packages/
+*.nupkg
