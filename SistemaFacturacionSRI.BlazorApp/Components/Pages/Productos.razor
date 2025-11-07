@@ -1,0 +1,304 @@
+﻿@page "/productos"
+@using SistemaFacturacionSRI.Domain.DTOs.Productos
+@using SistemaFacturacionSRI.Domain.Entities
+@inject HttpClient Http
+
+<PageTitle>Gestión de Productos</PageTitle>
+
+<div class="p-4 bg-white shadow-xl rounded-lg">
+    <div class="flex justify-between items-center mb-6 border-b pb-3">
+        <h1 class="text-3xl font-extrabold text-blue-800">Productos</h1>
+        <button @onclick="() => OpenForm(0)"
+                class="px-5 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-150 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Nuevo Producto
+        </button>
+    </div>
+
+    @if (productos == null)
+    {
+        <p class="text-center py-10 text-gray-500"><span class="animate-pulse">Cargando productos...</span></p>
+    }
+    else if (errorMessage != null)
+    {
+        <p class="text-center py-10 text-red-600 font-bold">Error al cargar: @errorMessage</p>
+    }
+    else if (productos.Count == 0)
+    {
+        <p class="text-center py-10 text-gray-500 italic">No hay productos registrados.</p>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white rounded-lg overflow-hidden border border-gray-200">
+                <thead class="bg-blue-600 text-white">
+                    <tr>
+                        <th class="py-3 px-4 text-left">ID</th>
+                        <th class="py-3 px-4 text-left">Código</th>
+                        <th class="py-3 px-4 text-left">Descripción</th>
+                        <th class="py-3 px-4 text-left">Tipo</th>
+                        <th class="py-3 px-4 text-left">Precio</th>
+                        <th class="py-3 px-4 text-left">IVA (%)</th>
+                        <th class="py-3 px-4 text-left">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in productos)
+                    {
+                        <tr class="border-t hover:bg-blue-50 transition duration-150">
+                            <td class="py-3 px-4">@p.Id</td>
+                            <td class="py-3 px-4">@p.CodigoPrincipal</td>
+                            <td class="py-3 px-4">@p.Descripcion</td>
+                            <td class="py-3 px-4">@p.TipoProducto</td>
+                            <td class="py-3 px-4">@p.PrecioUnitario</td>
+                            <td class="py-3 px-4">@p.PorcentajeIVA</td>
+                            <td class="py-3 px-4 space-x-2">
+                                <button @onclick="() => OpenForm(p.Id)" class="text-blue-500 hover:text-blue-700 transition duration-150" title="Editar">
+                                    ✏️
+                                </button>
+                                <button @onclick="() => ConfirmDelete(p.Id, p.Descripcion)" class="text-red-500 hover:text-red-700 transition duration-150" title="Eliminar">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (showFormModal)
+{
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-2xl font-bold text-blue-800">@(currentProducto.Id == 0 ? "Registrar Nuevo Producto" : $"Editar Producto: {currentProducto.Id}")</h3>
+                <button @onclick="CloseForm" class="text-gray-400 hover:text-gray-600">✖️</button>
+            </div>
+
+            <EditForm Model="@currentProducto" OnValidSubmit="@HandleSubmit" class="p-6">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Código Principal:</label>
+                        <InputText @bind-Value="currentProducto.CodigoPrincipal" class="form-control w-full" />
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Descripción:</label>
+                        <InputText @bind-Value="currentProducto.Descripcion" class="form-control w-full" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Tipo:</label>
+                        <InputSelect @bind-Value="currentProducto.TipoProducto" class="form-select w-full">
+                            <option value="Bien">Bien</option>
+                            <option value="Servicio">Servicio</option>
+                        </InputSelect>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Precio Unitario:</label>
+                        <InputNumber TValue="decimal" @bind-Value="currentProducto.PrecioUnitario" class="form-control w-full" />
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">IVA (%):</label>
+                        <InputSelect @bind-Value="currentProducto.PorcentajeIVA" class="form-select w-full">
+                            <option value="0">0</option>
+                            <option value="8">8</option>
+                            <option value="12">12</option>
+                            <option value="15">15</option>
+                        </InputSelect>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Stock:</label>
+                        <InputNumber TValue="decimal?" @bind-Value="currentProducto.Stock" class="form-control w-full" />
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" @onclick="CloseForm" class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-500 transition duration-150">Cancelar</button>
+                    <button type="submit" disabled="@isSubmitting" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-150 disabled:opacity-50">
+                        @(isSubmitting ? "Procesando..." : (currentProducto.Id == 0 ? "Guardar" : "Actualizar"))
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@if (showDeleteModal)
+{
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <h3 class="text-xl font-bold text-red-600 mb-4">Confirmar Eliminación</h3>
+            <p class="text-gray-700 mb-6">¿Deseas eliminar el producto <b>@productoToDeleteName</b>?</p>
+            <div class="flex justify-end space-x-3">
+                <button @onclick="CancelDelete" class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-500 transition duration-150">Cancelar</button>
+                <button @onclick="HandleDelete" disabled="@isSubmitting" class="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-150 disabled:opacity-50">Eliminar</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Producto>? productos;
+    private string? errorMessage;
+    private bool showFormModal = false;
+    private UpdateProducto currentProducto = new();
+    private bool isSubmitting = false;
+
+    private bool showDeleteModal = false;
+    private int productoToDeleteId;
+    private string productoToDeleteName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProductos();
+    }
+
+    private async Task LoadProductos()
+    {
+        productos = null;
+        errorMessage = null;
+        try
+        {
+            productos = await Http.GetFromJsonAsync<List<Producto>>("api/productos");
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Error de conexión: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar productos: {ex.Message}";
+        }
+    }
+
+    private async Task OpenForm(int id)
+    {
+        if (id == 0)
+        {
+            currentProducto = new UpdateProducto { Id = 0 };
+        }
+        else
+        {
+            try
+            {
+                var producto = await Http.GetFromJsonAsync<Producto>($"api/productos/{id}");
+                if (producto != null)
+                {
+                    currentProducto = new UpdateProducto
+                    {
+                        Id = producto.Id,
+                        CodigoPrincipal = producto.CodigoPrincipal,
+                        Descripcion = producto.Descripcion,
+                        TipoProducto = producto.TipoProducto,
+                        PrecioUnitario = producto.PrecioUnitario,
+                        PorcentajeIVA = producto.PorcentajeIVA,
+                        Stock = producto.Stock
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error al cargar producto: {ex.Message}";
+                return;
+            }
+        }
+        showFormModal = true;
+    }
+
+    private void CloseForm()
+    {
+        showFormModal = false;
+        currentProducto = new UpdateProducto();
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSubmitting = true;
+        try
+        {
+            HttpResponseMessage response;
+
+            if (currentProducto.Id == 0)
+            {
+                var createDto = new CreateProducto
+                {
+                    CodigoPrincipal = currentProducto.CodigoPrincipal,
+                    Descripcion = currentProducto.Descripcion,
+                    TipoProducto = currentProducto.TipoProducto,
+                    PrecioUnitario = currentProducto.PrecioUnitario,
+                    PorcentajeIVA = currentProducto.PorcentajeIVA,
+                    Stock = currentProducto.Stock
+                };
+                response = await Http.PostAsJsonAsync("api/productos", createDto);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"api/productos/{currentProducto.Id}", currentProducto);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                CloseForm();
+                await LoadProductos();
+            }
+            else
+            {
+                errorMessage = $"Error: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error en la solicitud: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void ConfirmDelete(int id, string name)
+    {
+        productoToDeleteId = id;
+        productoToDeleteName = name;
+        showDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+    }
+
+    private async Task HandleDelete()
+    {
+        isSubmitting = true;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/productos/{productoToDeleteId}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadProductos();
+            }
+            else
+            {
+                errorMessage = "Error al eliminar producto.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+            showDeleteModal = false;
+        }
+    }
+}

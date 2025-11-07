@@ -9,6 +9,8 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Producto> Productos { get; set; }
 
+
+
         // Constructor necesario para la Inyección de Dependencias
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
@@ -21,9 +23,13 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
             // Configuramos la precisión para la propiedad PrecioUnitario de la entidad Producto
             modelBuilder.Entity<Producto>(entity =>
             {
-                entity.Property(e => e.PrecioUnitario)
-                      .HasColumnType("decimal(18, 2)"); // O .HasPrecision(18, 2)
+                entity.Property(e => e.PrecioUnitario).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PrecioCompra).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PorcentajeIVA).HasColumnType("decimal(5,2)");
             });
+
+
+
         }
     }
 }
