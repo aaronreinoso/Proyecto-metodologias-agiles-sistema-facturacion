@@ -11,7 +11,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped(sp => new HttpClient
 {
     // ¡IMPORTANTE! Usa la URL de tu API que anotaste en el Paso 1
-    BaseAddress = new Uri("https://localhost:7139;http://localhost:5183 ")
+    BaseAddress = new Uri("https://localhost:7139")//;http://localhost:5183 ")
 });
 // --- FIN DE CONFIGURACIÓN DE HTTPCLIENT ---
 

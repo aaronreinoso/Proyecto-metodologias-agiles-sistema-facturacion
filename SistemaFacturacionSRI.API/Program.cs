@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Infrastructure.Persistence; // La ubicación de tu AppDbContext
+using SistemaFacturacionSRI.Infrastructure.Services; // para ProductoService y ClienteService
+
 
 // ...
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +30,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)
     ));
 // --- FIN DE CONFIGURACIÓN DE EF CORE ---
+
+// --- REGISTRO DE SERVICIOS PERSONALIZADOS
+builder.Services.AddScoped<IClienteService, ClienteService>();
+builder.Services.AddScoped<IProductoService, ProductoService>();
 
 // Add services to the container.
 builder.Services.AddControllers();
