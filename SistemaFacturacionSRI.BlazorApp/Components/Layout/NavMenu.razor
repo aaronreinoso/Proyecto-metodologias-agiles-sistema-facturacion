@@ -1,6 +1,7 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">SistemaFacturacionSRI.BlazorApp</a>
+        <!-- CAMBIO: Nombre del sistema actualizado -->
+        <a class="navbar-brand" href="">Sistema Facturacion</a>
     </div>
 </div>
 
@@ -16,13 +17,22 @@
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="clientes">
+                <!-- Icono para Clientes (definido en CSS) -->
                 <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> Clientes
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="productos">
+                <!-- Icono para Productos (definido en CSS) -->
                 <span class="bi bi-box-seam-fill-nav-menu" aria-hidden="true"></span> Productos
+            </NavLink>
+        </div>
+
+        <!-- NUEVO: Enlace para Facturas (Sprint 2) -->
+        <div class="nav-item px-3">
+            <NavLink class="nav-link disabled" href="#">
+                <span class="bi bi-document-text-fill-nav-menu" aria-hidden="true"></span> Facturas (Sprint 2)
             </NavLink>
         </div>
     </nav>

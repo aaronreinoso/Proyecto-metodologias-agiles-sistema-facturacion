@@ -8,6 +8,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         // --- Definición de Tablas (DbSets) ---
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Producto> Productos { get; set; }
+        public DbSet<LoteProducto> LotesProducto { get; set; }
 
         // --- Constructor necesario para la Inyección de Dependencias ---
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)

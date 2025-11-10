@@ -1,7 +1,160 @@
 ﻿@page "/"
+@inject NavigationManager NavigationManager
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Home - Sistema de Facturación</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="home-container">
 
-Welcome to your new app.
+    <!-- Título y bienvenida (Rediseñado como sección "Hero") -->
+    <div class="welcome-header">
+        <div class="welcome-text">
+            <h1 class="title">Bienvenido al Sistema de Facturación</h1>
+            <p class="subtitle">Gestione sus clientes, productos y genere facturas electrónicas de forma eficiente.</p>
+        </div>
+        <!-- Icono grande para dar énfasis visual -->
+        <span class="oi oi-spreadsheet welcome-icon" aria-hidden="true"></span>
+    </div>
+
+    <!-- Contenedor de tarjetas de acceso rápido (Sin cambios) -->
+    <div class="quick-access-grid">
+
+        <!-- Tarjeta de Clientes -->
+        <!-- CORRECCIÓN: Se añade el parámetro "/clientes" a NavigateTo -->
+        <div class="access-card" @onclick='() => NavigateTo("/clientes")'>
+            <span class="oi oi-people card-icon" aria-hidden="true"></span>
+            <!-- CORRECCIÓN: Se cierra <h3> correctamente -->
+            <h3 class="card-title">Gestión de Clientes</h3>
+            <p class="card-description">Administre su cartera de clientes. Cree, edite y consulte información.</p>
+        </div>
+
+        <!-- Tarjeta de Productos -->
+        <!-- CORRECCIÓN: Se añade el parámetro "/productos" a NavigateTo -->
+        <div class="access-card" @onclick='() => NavigateTo("/productos")'>
+            <span class="oi oi-box card-icon" aria-hidden="true"></span>
+            <!-- CORRECCIÓN: Se cierra <h3> correctamente -->
+            <h3 class="card-title">Gestión de Productos</h3>
+            <p class="card-description">Configure sus productos y servicios listos para la facturación.</p>
+        </div>
+
+        <!-- Tarjeta de Facturación (Deshabilitada por ahora, para Sprint 2) -->
+        <div class="access-card disabled">
+            <span class="oi oi-document card-icon" aria-hidden="true"></span>
+            <h3 class="card-title">Nueva Factura</h3>
+            <p class="card-description">(Próximamente en Sprint 2) Emita nuevos comprobantes electrónicos.</p>
+        </div>
+
+    </div>
+</div>
+
+<!--
+  Estilos CSS locales para esta página.
+  He modificado el "welcome-header" y añadido "welcome-icon".
+-->
+<style>
+    .home-container {
+        /* Eliminamos el padding superior para que el hero se pegue */
+        padding: 0rem 2rem 2rem 2rem;
+    }
+
+    /* --- ESTILOS DEL NUEVO HERO --- */
+    .welcome-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        /* Un degradado sutil usando el azul oscuro de tu NavMenu */
+        background: linear-gradient(90deg, #3a2d7a 0%, #2a1b5c 100%);
+        color: #ffffff;
+        padding: 2.5rem 3rem;
+        border-radius: 12px;
+        margin-bottom: 2.5rem;
+        /* Sombra suave para que "flote" */
+        box-shadow: 0 10px 25px rgba(42, 27, 92, 0.2);
+    }
+
+        .welcome-header .title {
+            font-size: 2.25rem; /* 36px */
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-header .subtitle {
+            font-size: 1.125rem; /* 18px */
+            color: #e0e0e0; /* Un blanco más suave */
+            opacity: 0.9;
+        }
+
+    .welcome-icon {
+        font-size: 5rem; /* 80px */
+        color: #ffffff;
+        opacity: 0.3;
+        margin-left: 2rem;
+    }
+    /* --- FIN DE ESTILOS DEL HERO --- */
+
+
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .access-card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        cursor: pointer;
+        border: 1px solid #eee;
+    }
+
+        .access-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+    .card-icon {
+        font-size: 2.5rem; /* 40px */
+        color: #0d6efd;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .card-title {
+        font-size: 1.25rem; /* 20px */
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #222;
+    }
+
+    .card-description {
+        font-size: 0.9rem; /* 14px */
+        color: #666;
+        line-height: 1.5;
+    }
+
+    .access-card.disabled {
+        background-color: #f9f9f9;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+        .access-card.disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .access-card.disabled .card-icon {
+            color: #999;
+        }
+
+</style>
+
+@code {
+    // Función para navegar al hacer clic en las tarjetas
+    private void NavigateTo(string url)
+    {
+        NavigationManager.NavigateTo(url);
+    }
+}

@@ -34,6 +34,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // --- REGISTRO DE SERVICIOS PERSONALIZADOS
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
+builder.Services.AddScoped<ILoteProductoService, LoteProductoService>();
+
 
 // Add services to the container.
 builder.Services.AddControllers();
