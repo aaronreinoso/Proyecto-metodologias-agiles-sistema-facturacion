@@ -5,142 +5,348 @@
 
 <PageTitle>Gestión de Productos</PageTitle>
 
-<!-- ✅ Encabezado principal -->
-<div class="p-6 bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-lg border border-gray-200">
-    <div class="flex justify-between items-center mb-6 border-b pb-4">
-        <h1 class="text-3xl font-extrabold text-blue-800 tracking-tight flex items-center gap-2">
-            🧾 Gestión de Productos
-        </h1>
-        <button @onclick="() => OpenForm(0)"
-                class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 transition-all duration-150 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
-            </svg>
-            Nuevo Producto
-        </button>
+<style>
+    /* 🌤️ Fondo general */
+    body {
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        background: linear-gradient(180deg, #fafafa 0%, #f2f3f5 100%);
+        color: #111418;
+        margin: 0;
+        padding: 0;
+        letter-spacing: 0.01em;
+    }
+
+    /* 🪶 Contenedor principal */
+    .container {
+        max-width: 1100px;
+        margin: 60px auto;
+        padding: 48px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        }
+
+    /* 🧭 Encabezado */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+    }
+
+        .header h1 {
+            font-weight: 800;
+            font-size: 32px;
+            letter-spacing: -0.03em;
+            background: linear-gradient(90deg, #101010, #3b3b3b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+    /* ✨ Botón principal */
+    .btn-primary {
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 85, 255, 0.25);
+        transition: all 0.2s ease;
+    }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 85, 255, 0.35);
+            background: linear-gradient(135deg, #2563eb, #5ea0ff);
+        }
+
+    /* 🧾 Tabla */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    th {
+        text-align: left;
+        padding: 14px 16px;
+        color: #333;
+        font-weight: 700;
+        font-size: 15px;
+        border-bottom: 1px solid #e5e7eb;
+        background: rgba(250, 250, 250, 0.8);
+    }
+
+    td {
+        padding: 14px 16px;
+        color: #222;
+        font-size: 15px;
+        border-bottom: 1px solid #f0f2f5;
+        transition: background-color 0.2s ease;
+    }
+
+    tr:hover td {
+        background: rgba(247, 249, 252, 0.6);
+    }
+
+    .actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    /* 🧿 Botones de acción */
+    .icon-btn {
+        border: none;
+        background: none;
+        font-size: 18px;
+        opacity: 0.6;
+        transition: opacity 0.2s ease, transform 0.15s ease;
+        cursor: pointer;
+    }
+
+        .icon-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+    /* 🌫️ Modal */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(10px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        animation: fadeIn 0.25s ease-in-out;
+    }
+
+    .modal-box {
+        background: white;
+        border-radius: 18px;
+        padding: 36px;
+        width: 90%;
+        max-width: 480px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(230, 232, 236, 0.6);
+        animation: slideUp 0.25s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @@keyframes slideUp {
+        from {
+            transform: translateY(10px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+    .close-btn {
+        border: none;
+        background: none;
+        font-size: 22px;
+        cursor: pointer;
+        color: #94a3b8;
+        transition: color 0.2s ease;
+    }
+
+        .close-btn:hover {
+            color: #1e293b;
+        }
+
+    label {
+        font-weight: 600;
+        font-size: 14px;
+        color: #374151;
+        display: block;
+        margin-top: 10px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f9fafb;
+        margin-top: 4px;
+        font-size: 15px;
+        color: #111827;
+        transition: all 0.2s ease;
+    }
+
+        input:focus, select:focus {
+            background-color: #fff;
+            border-color: #2563eb;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 24px;
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        border-radius: 10px;
+        color: #111827;
+        border: 1px solid #e2e8f0;
+        padding: 9px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+</style>
+
+<div class="container">
+    <div class="header">
+        <h1> Gestión de Productos</h1>
+        <button class="btn-primary" @onclick="() => OpenForm(0)">＋ Nuevo Producto</button>
     </div>
 
-    <!-- ✅ Estados de carga / error -->
     @if (productos == null)
     {
-        <div class="flex justify-center py-12 text-gray-500">
-            <span class="animate-pulse">Cargando productos...</span>
-        </div>
+        <div style="text-align:center; padding:40px; color:#6b7280;">Cargando productos...</div>
     }
     else if (errorMessage != null)
     {
-        <div class="text-center py-8 text-red-600 font-semibold">
-            ⚠️ Error al cargar productos: @errorMessage
-        </div>
+        <div style="color:#ef4444; text-align:center; font-weight:600; padding:20px;">⚠️ @errorMessage</div>
     }
     else if (productos.Count == 0)
     {
-        <div class="text-center py-10 text-gray-500 italic">
-            No hay productos registrados todavía.
-        </div>
+        <div style="text-align:center; padding:30px; color:#6b7280; font-style:italic;">No hay productos registrados.</div>
     }
     else
     {
-        <!-- ✅ Tabla de productos -->
-        <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-200 rounded-lg bg-white shadow-sm">
-                <thead class="bg-blue-600 text-white">
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Tipo</th>
+                    <th>Precio</th>
+                    <th>IVA (%)</th>
+                    <th>Stock</th>
+                    <th style="text-align:center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in productos)
+                {
                     <tr>
-                        <th class="py-3 px-4 text-left">Código</th>
-                        <th class="py-3 px-4 text-left">Descripción</th>
-                        <th class="py-3 px-4 text-left">Tipo</th>
-                        <th class="py-3 px-4 text-left">Precio</th>
-                        <th class="py-3 px-4 text-left">IVA (%)</th>
-                        <th class="py-3 px-4 text-left">Stock</th>
-                        <th class="py-3 px-4 text-center">Acciones</th>
+                        <td>@p.CodigoPrincipal</td>
+                        <td>@p.Descripcion</td>
+                        <td>@p.TipoProducto</td>
+                        <td>$@p.PrecioUnitario.ToString("0.00")</td>
+                        <td>@p.PorcentajeIVA%</td>
+                        <td>@p.Stock</td>
+                        <td>
+                            <div class="actions">
+                                <button class="icon-btn" title="Editar" @onclick="() => OpenForm(p.Id)">✏️</button>
+                                <button class="icon-btn" title="Eliminar" @onclick="() => ConfirmDelete(p.Id, p.Descripcion)">🗑️</button>
+                            </div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var p in productos)
-                    {
-                        <tr class="border-t hover:bg-blue-50 transition duration-150">
-                            <td class="py-3 px-4 font-medium text-gray-800">@p.CodigoPrincipal</td>
-                            <td class="py-3 px-4">@p.Descripcion</td>
-                            <td class="py-3 px-4">@p.TipoProducto</td>
-                            <td class="py-3 px-4">$@p.PrecioUnitario.ToString("0.00")</td>
-                            <td class="py-3 px-4">@p.PorcentajeIVA%</td>
-                            <td class="py-3 px-4">@p.Stock</td>
-                            <td class="py-3 px-4 text-center space-x-2">
-                                <button @onclick="() => OpenForm(p.Id)" class="text-blue-500 hover:text-blue-700" title="Editar">✏️</button>
-                                <button @onclick="() => ConfirmDelete(p.Id, p.Descripcion)" class="text-red-500 hover:text-red-700" title="Eliminar">🗑️</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                }
+            </tbody>
+        </table>
     }
 </div>
 
-<!-- ✅ Modal de creación / edición -->
 @if (showFormModal)
 {
-    <div class="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
-            <div class="p-5 border-b flex justify-between items-center bg-blue-600 text-white">
-                <h3 class="text-xl font-bold">
-                    @(currentProducto.Id == 0 ? "Registrar Nuevo Producto" : $"Editar Producto: {currentProducto.CodigoPrincipal}")
-                </h3>
-                <button @onclick="CloseForm" class="hover:text-gray-300">✖</button>
+    <div class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>@(currentProducto.Id == 0 ? "Registrar nuevo producto" : $"Editar: {currentProducto.CodigoPrincipal}")</h3>
+                <button class="close-btn" @onclick="CloseForm">×</button>
             </div>
 
-            <EditForm Model="@currentProducto" OnValidSubmit="@HandleSubmit" class="p-6 space-y-5">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="font-semibold text-gray-700 text-sm">Código Principal:</label>
-                        <InputText @bind-Value="currentProducto.CodigoPrincipal" class="input w-full" />
-                    </div>
-                    <div>
-                        <label class="font-semibold text-gray-700 text-sm">Código Auxiliar:</label>
-                        <InputText @bind-Value="currentProducto.CodigoAuxiliar" class="input w-full" />
-                    </div>
-                </div>
+            <EditForm Model="@currentProducto" OnValidSubmit="@HandleSubmit">
+                <label>Código Principal</label>
+                <InputText @bind-Value="currentProducto.CodigoPrincipal" />
 
-                <div>
-                    <label class="font-semibold text-gray-700 text-sm">Descripción:</label>
-                    <InputText @bind-Value="currentProducto.Descripcion" class="input w-full" />
-                </div>
+                <label>Código Auxiliar</label>
+                <InputText @bind-Value="currentProducto.CodigoAuxiliar" />
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="font-semibold text-gray-700 text-sm">Tipo:</label>
-                        <InputSelect @bind-Value="currentProducto.TipoProducto" class="input w-full">
-                            <option value="Bien">Bien</option>
-                            <option value="Servicio">Servicio</option>
-                        </InputSelect>
-                    </div>
-                    <div>
-                        <label class="font-semibold text-gray-700 text-sm">Precio Unitario:</label>
-                        <InputNumber TValue="decimal" @bind-Value="currentProducto.PrecioUnitario" class="input w-full" />
-                    </div>
-                </div>
+                <label>Descripción</label>
+                <InputText @bind-Value="currentProducto.Descripcion" />
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="font-semibold text-gray-700 text-sm">IVA (%):</label>
-                        <InputSelect @bind-Value="currentProducto.PorcentajeIVA" class="input w-full">
-                            <option value="0">0</option>
-                            <option value="8">8</option>
-                            <option value="12">12</option>
-                            <option value="15">15</option>
-                        </InputSelect>
-                    </div>
-                    <div>
-                        <label class="font-semibold text-gray-700 text-sm">Stock:</label>
-                        <InputNumber TValue="decimal?" @bind-Value="currentProducto.Stock" class="input w-full" />
-                    </div>
-                </div>
+                <label>Tipo</label>
+                <InputSelect @bind-Value="currentProducto.TipoProducto">
+                    <option value="Bien">Bien</option>
+                    <option value="Servicio">Servicio</option>
+                </InputSelect>
 
-                <div class="flex justify-end gap-3 pt-4 border-t">
-                    <button type="button" @onclick="CloseForm" class="bg-gray-400 text-white font-bold py-2 px-5 rounded-lg hover:bg-gray-500 transition">
-                        Cancelar
-                    </button>
-                    <button type="submit" disabled="@isSubmitting" class="bg-blue-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-blue-700 transition disabled:opacity-60">
+                <label>Precio Unitario</label>
+                <InputNumber TValue="decimal" @bind-Value="currentProducto.PrecioUnitario" />
+
+                <label>IVA (%)</label>
+                <InputSelect @bind-Value="currentProducto.PorcentajeIVA">
+                    <option value="0">0</option>
+                    <option value="8">8</option>
+                    <option value="12">12</option>
+                    <option value="15">15</option>
+                </InputSelect>
+
+                <label>Stock</label>
+                <InputNumber TValue="decimal?" @bind-Value="currentProducto.Stock" />
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" @onclick="CloseForm">Cancelar</button>
+                    <button type="submit" class="btn-primary" disabled="@isSubmitting">
                         @(isSubmitting ? "Procesando..." : (currentProducto.Id == 0 ? "Guardar" : "Actualizar"))
                     </button>
                 </div>
@@ -149,16 +355,15 @@
     </div>
 }
 
-<!-- ✅ Modal de eliminación -->
 @if (showDeleteModal)
 {
-    <div class="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 animate-fadeIn">
-            <h3 class="text-xl font-bold text-red-600 mb-3">Confirmar eliminación</h3>
-            <p class="text-gray-700 mb-6">¿Deseas eliminar el producto <b>@productoToDeleteName</b>?</p>
-            <div class="flex justify-end gap-3">
-                <button @onclick="CancelDelete" class="bg-gray-400 text-white font-bold py-2 px-5 rounded-lg hover:bg-gray-500 transition">Cancelar</button>
-                <button @onclick="HandleDelete" disabled="@isSubmitting" class="bg-red-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-red-700 transition disabled:opacity-60">Eliminar</button>
+    <div class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color:#ef4444;">Confirmar eliminación</h3>
+            <p>¿Deseas eliminar el producto <b>@productoToDeleteName</b>?</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" @onclick="CancelDelete">Cancelar</button>
+                <button class="btn-primary" style="background:#ef4444" @onclick="HandleDelete" disabled="@isSubmitting">Eliminar</button>
             </div>
         </div>
     </div>
@@ -219,12 +424,14 @@
             }
         }
         showFormModal = true;
+        StateHasChanged();
     }
 
     private void CloseForm()
     {
         showFormModal = false;
         currentProducto = new();
+        StateHasChanged();
     }
 
     private async Task HandleSubmit()
@@ -261,9 +468,14 @@
         productoToDeleteId = id;
         productoToDeleteName = name;
         showDeleteModal = true;
+        StateHasChanged();
     }
 
-    private void CancelDelete() => showDeleteModal = false;
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        StateHasChanged();
+    }
 
     private async Task HandleDelete()
     {
@@ -284,6 +496,7 @@
         {
             isSubmitting = false;
             showDeleteModal = false;
+            StateHasChanged();
         }
     }
 }
