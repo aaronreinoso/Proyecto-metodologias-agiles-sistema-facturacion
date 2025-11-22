@@ -9,6 +9,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Producto> Productos { get; set; }
         public DbSet<LoteProducto> LotesProducto { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
 
         // --- Constructor necesario para la Inyección de Dependencias ---
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -45,7 +46,27 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
                       .HasMaxLength(20);
             });
 
-            // Puedes agregar otras configuraciones de entidades aquí en el futuro.
+            // --- Datos iniciales ---
+            modelBuilder.Entity<Usuario>().HasData(
+                new Usuario
+                {
+                    Id = 1, // Es obligatorio poner ID en el Seed
+                    NombreUsuario = "admin",
+                    Password = "12345",
+                    Rol = "Administrador",
+                    Estado = true
+                },
+                new Usuario
+                {
+                    Id = 2,
+                    NombreUsuario = "vendedor",
+                    Password = "12345",
+                    Rol = "Empleado",
+                    Estado = true
+                }
+            );
         }
+
+
     }
 }

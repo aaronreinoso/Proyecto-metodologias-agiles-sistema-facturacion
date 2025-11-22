@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using SistemaFacturacionSRI.Infrastructure.Persistence;
 namespace SistemaFacturacionSRI.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251122163628_AgregarEstadoUsuario")]
+    partial class AgregarEstadoUsuario
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -178,24 +181,6 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Usuarios");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Estado = true,
-                            NombreUsuario = "admin",
-                            Password = "12345",
-                            Rol = "Administrador"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Estado = true,
-                            NombreUsuario = "vendedor",
-                            Password = "12345",
-                            Rol = "Empleado"
-                        });
                 });
 
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.LoteProducto", b =>

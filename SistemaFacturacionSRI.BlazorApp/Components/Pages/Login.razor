@@ -1,0 +1,74 @@
+﻿@page "/login"
+@using SistemaFacturacionSRI.Domain.Entities
+@using SistemaFacturacionSRI.BlazorApp.Auth
+@inject HttpClient Http
+@inject SimpleAuthStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+
+<div class="container" style="max-width: 400px; margin-top: 100px;">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center">
+            <h3>🔐 Iniciar Sesión</h3>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@usuario" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label>Usuario</label>
+                    <InputText class="form-control" @bind-Value="usuario.NombreUsuario" placeholder="Ej: admin" />
+                    <ValidationMessage For="@(() => usuario.NombreUsuario)" />
+                </div>
+                <div class="mb-3">
+                    <label>Contraseña</label>
+                    <InputText type="password" class="form-control" @bind-Value="usuario.Password" placeholder="****" />
+                    <ValidationMessage For="@(() => usuario.Password)" />
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Ingresar</button>
+                </div>
+
+                @if (!string.IsNullOrEmpty(mensajeError))
+                {
+                    <div class="alert alert-danger mt-3 text-center">@mensajeError</div>
+                }
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Usuario usuario = new Usuario();
+    private string mensajeError = "";
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            // Consultamos a tu API
+            var response = await Http.PostAsJsonAsync("api/auth/login", usuario);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var usuarioAutenticado = await response.Content.ReadFromJsonAsync<Usuario>();
+                //guardar usuario en memoria
+                AuthStateProvider.IniciarSesion(usuarioAutenticado!);
+
+                NavManager.NavigateTo("/");
+            }
+            else
+            {
+                var errorDelServidor = await response.Content.ReadAsStringAsync();
+
+                mensajeError = string.IsNullOrEmpty(errorDelServidor)
+                               ? "No se pudo iniciar sesión."
+                               : errorDelServidor.Trim('"');
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error de conexión con el servidor.";
+        }
+    }
+}

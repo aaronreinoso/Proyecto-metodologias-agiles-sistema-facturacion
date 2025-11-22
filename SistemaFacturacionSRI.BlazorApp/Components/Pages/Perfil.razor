@@ -1,0 +1,97 @@
+﻿@page "/perfil"
+@using SistemaFacturacionSRI.Domain.DTOs.Usuarios
+@using SistemaFacturacionSRI.Domain.Entities
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+
+<div class="container" style="max-width: 600px;">
+    <div class="header">
+        <h1>👤 Mi Perfil</h1>
+    </div>
+
+    <div class="modal-box" style="margin: 0; width: 100%; max-width: 100%;">
+        @if (isLoading)
+        {
+            <p>Cargando datos del perfil...</p>
+        }
+        else
+        {
+            <EditForm Model="@miPerfil" OnValidSubmit="ActualizarPerfil">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label>Rol</label>
+                    <input type="text" class="form-control" value="@rolActual" disabled style="background-color: #e9ecef;" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Nombre de Usuario</label>
+                    <InputText @bind-Value="miPerfil.NombreUsuario" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label>Nueva Contraseña (Dejar en blanco para no cambiar)</label>
+                    <InputText @bind-Value="miPerfil.Password" type="password" class="form-control" placeholder="******" />
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">Actualizar Mis Datos</button>
+                </div>
+            </EditForm>
+
+            @if (mensajeExito)
+            {
+                <div class="alert alert-success mt-3">Datos actualizados correctamente.</div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private UpdateUsuario miPerfil = new();
+    private string rolActual = "";
+    private bool isLoading = true;
+    private bool mensajeExito = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            var idString = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "N/A";
+
+            if (int.TryParse(idString, out int userId))
+            {
+                var usuarioDb = await Http.GetFromJsonAsync<Usuario>($"api/usuarios/{userId}");
+                if (usuarioDb != null)
+                {
+                    miPerfil = new UpdateUsuario
+                    {
+                        Id = usuarioDb.Id,
+                        NombreUsuario = usuarioDb.NombreUsuario,
+                        Rol = usuarioDb.Rol,
+                        Estado = usuarioDb.Estado,
+                        Password = "" // Limpio por seguridad
+                    };
+                }
+            }
+        }
+        isLoading = false;
+    }
+
+    private async Task ActualizarPerfil()
+    {
+        var response = await Http.PutAsJsonAsync($"api/usuarios/{miPerfil.Id}", miPerfil);
+        if (response.IsSuccessStatusCode)
+        {
+            mensajeExito = true;
+            // Opcional: Podrías forzar un logout para que se loguee con los nuevos datos
+        }
+    }
+}

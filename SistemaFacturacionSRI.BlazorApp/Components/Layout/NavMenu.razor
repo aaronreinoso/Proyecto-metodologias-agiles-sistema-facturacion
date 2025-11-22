@@ -1,6 +1,10 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using SistemaFacturacionSRI.BlazorApp.Auth
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <!-- CAMBIO: Nombre del sistema actualizado -->
         <a class="navbar-brand" href="">Sistema Facturacion</a>
     </div>
 </div>
@@ -9,31 +13,89 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Dashboard
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="facturacion">
+                        <span class="bi bi-file-text-fill-nav-menu" aria-hidden="true"></span> Facturación
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Administrador">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="usuarios">
+                        <span class="bi bi-person-badge-fill-nav-menu" aria-hidden="true"></span> Usuarios
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="productos">
+                        <span class="bi bi-box-seam-fill-nav-menu" aria-hidden="true"></span> Productos
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="clientes">
+                        <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> Clientes
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="reportes">
+                        <span class="bi bi-bar-chart-fill-nav-menu" aria-hidden="true"></span> Reportes
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3 border-top pt-3 mt-3">
+                    <NavLink class="nav-link" href="perfil">
+                        <span class="bi bi-person-circle" aria-hidden="true"></span> Mi Perfil
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <div class="nav-item px-3 mt-2">
+            <AuthorizeView>
+                <Authorized>
+                    <button class="nav-link btn btn-link text-start text-white" @onclick="Logout">
+                        <span class="bi" aria-hidden="true">🚪</span> Salir (@context.User.Identity?.Name)
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <NavLink class="nav-link" href="login">
+                        <span class="bi" aria-hidden="true">🔐</span> Iniciar Sesión
+                    </NavLink>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="clientes">
-                <!-- Icono para Clientes (definido en CSS) -->
-                <span class="bi bi-people-fill-nav-menu" aria-hidden="true"></span> Clientes
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="productos">
-                <!-- Icono para Productos (definido en CSS) -->
-                <span class="bi bi-box-seam-fill-nav-menu" aria-hidden="true"></span> Productos
-            </NavLink>
-        </div>
-
-        <!-- NUEVO: Enlace para Facturas (Sprint 2) -->
-        <div class="nav-item px-3">
-            <NavLink class="nav-link disabled" href="#">
-                <span class="bi bi-document-text-fill-nav-menu" aria-hidden="true"></span> Facturas (Sprint 2)
-            </NavLink>
-        </div>
     </nav>
 </div>
+
+@code {
+    private void Logout()
+    {
+        ((SimpleAuthStateProvider)AuthStateProvider).CerrarSesion();
+        NavManager.NavigateTo("/login", forceLoad: true);
+    }
+}

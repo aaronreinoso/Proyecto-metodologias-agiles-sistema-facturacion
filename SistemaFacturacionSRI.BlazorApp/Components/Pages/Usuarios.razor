@@ -1,0 +1,183 @@
+﻿@page "/usuarios"
+@using SistemaFacturacionSRI.Domain.DTOs.Usuarios
+@using SistemaFacturacionSRI.Domain.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+
+<AuthorizeView Roles="Administrador">
+    <Authorized>
+        <div class="container">
+            <div class="header">
+                <h1>👥 Gestión de Empleados</h1>
+                <button class="btn-primary" @onclick="() => OpenForm(0)">＋ Nuevo Vendedor</button>
+            </div>
+
+            @if (usuarios == null)
+            {
+                <p>Cargando...</p>
+            }
+            else
+            {
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in usuarios)
+                        {
+                            <tr style="@(u.Estado ? "" : "opacity: 0.5; background-color: #f0f0f0;")">
+                                <td>@u.NombreUsuario</td>
+                                <td>@u.Rol</td>
+                                <td>
+                                    @if (u.Estado)
+                                    {
+                                        <span style="color:green">● Activo</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span style="color:red">● Inactivo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="icon-btn" title="Editar" @onclick="() => OpenForm(u.Id)">✏️</button>
+
+                                        @if (u.Estado)
+                                        {
+                                            <button class="icon-btn" style="color:red" title="Desactivar" @onclick="() => ToggleEstado(u.Id)">🚫</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="icon-btn" style="color:green" title="Activar" @onclick="() => ToggleEstado(u.Id)">✅</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="alert alert-danger">Acceso restringido.</div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@if (showModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>@(currentUser.Id == 0 ? "Nuevo Vendedor" : $"Editar: {currentUser.NombreUsuario}")</h3>
+                <button class="close-btn" @onclick="CloseForm">×</button>
+            </div>
+
+            <EditForm Model="@currentUser" OnValidSubmit="HandleSubmit">
+                <label>Nombre de Usuario</label>
+                <InputText @bind-Value="currentUser.NombreUsuario" class="form-control" />
+
+                <label>Contraseña @(currentUser.Id != 0 ? "(Dejar vacío para no cambiar)" : "")</label>
+                <InputText @bind-Value="currentUser.Password" type="password" class="form-control" />
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" @onclick="CloseForm">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Usuario>? usuarios;
+    private bool showModal = false;
+    private UpdateUsuario currentUser = new();
+    private int currentUserId; // ID del admin logueado
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Obtener ID del usuario logueado para filtrarlo
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            // Extraer el ID del Claim que configuramos en el paso anterior
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null) int.TryParse(idClaim.Value, out currentUserId);
+        }
+
+        await LoadUsuarios();
+    }
+
+    private async Task LoadUsuarios()
+    {
+        var listaCompleta = await Http.GetFromJsonAsync<List<Usuario>>("api/usuarios");
+
+        // 2. FILTRO: Excluir al administrador actual de la lista
+        if (listaCompleta != null)
+        {
+            usuarios = listaCompleta.Where(u => u.Id != currentUserId).ToList();
+        }
+    }
+
+    private async Task OpenForm(int id)
+    {
+        if (id == 0)
+        {
+            // Por defecto creamos EMPLEADOS activos
+            currentUser = new UpdateUsuario { Rol = "Empleado", Estado = true };
+        }
+        else
+        {
+            var user = await Http.GetFromJsonAsync<Usuario>($"api/usuarios/{id}");
+            currentUser = new UpdateUsuario
+            {
+                Id = user!.Id,
+                NombreUsuario = user.NombreUsuario,
+                Rol = user.Rol,
+                Estado = user.Estado,
+                Password = ""
+            };
+        }
+        showModal = true;
+    }
+
+    private void CloseForm() => showModal = false;
+
+    private async Task HandleSubmit()
+    {
+        if (currentUser.Id == 0)
+        {
+            var createDto = new CreateUsuario
+            {
+                NombreUsuario = currentUser.NombreUsuario,
+                Password = currentUser.Password ?? "1234",
+                Rol = "Empleado" // SIEMPRE SE CREAN COMO EMPLEADOS
+            };
+            await Http.PostAsJsonAsync("api/usuarios", createDto);
+        }
+        else
+        {
+            await Http.PutAsJsonAsync($"api/usuarios/{currentUser.Id}", currentUser);
+        }
+
+        CloseForm();
+        await LoadUsuarios();
+    }
+
+    private async Task ToggleEstado(int id)
+    {
+        await Http.PatchAsync($"api/usuarios/{id}/toggle-estado", null);
+        await LoadUsuarios();
+    }
+}

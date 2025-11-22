@@ -1,11 +1,13 @@
 ﻿@page "/productos"
 @using SistemaFacturacionSRI.Domain.DTOs.Productos
 @using SistemaFacturacionSRI.Domain.Entities
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
 
 <PageTitle>Gestión de Productos</PageTitle>
 
 <style>
+    /* ... (Tus estilos CSS se mantienen idénticos) ... */
     /* 🌤️ Fondo general */
     body {
         font-family: 'Inter', 'Segoe UI', sans-serif;
@@ -252,8 +254,12 @@
 
 <div class="container">
     <div class="header">
-        <h1> Gestión de Productos</h1>
-        <button class="btn-primary" @onclick="() => OpenForm(0)">＋ Nuevo Producto</button>
+        <h1>📦 Gestión de Productos</h1>
+        <AuthorizeView Roles="Administrador">
+            <Authorized>
+                <button class="btn-primary" @onclick="() => OpenForm(0)">＋ Nuevo Producto</button>
+            </Authorized>
+        </AuthorizeView>
     </div>
 
     @if (productos == null)
@@ -279,7 +285,11 @@
                     <th>Precio</th>
                     <th>IVA (%)</th>
                     <th>Stock</th>
-                    <th style="text-align:center;">Acciones</th>
+                    <AuthorizeView Roles="Administrador">
+                        <Authorized>
+                            <th style="text-align:center;">Acciones</th>
+                        </Authorized>
+                    </AuthorizeView>
                 </tr>
             </thead>
             <tbody>
@@ -292,12 +302,16 @@
                         <td>$@p.PrecioUnitario.ToString("0.00")</td>
                         <td>@p.PorcentajeIVA%</td>
                         <td>@p.Stock</td>
-                        <td>
-                            <div class="actions">
-                                <button class="icon-btn" title="Editar" @onclick="() => OpenForm(p.Id)">✏️</button>
-                                <button class="icon-btn" title="Eliminar" @onclick="() => ConfirmDelete(p.Id, p.Descripcion)">🗑️</button>
-                            </div>
-                        </td>
+                        <AuthorizeView Roles="Administrador">
+                            <Authorized>
+                                <td>
+                                    <div class="actions">
+                                        <button class="icon-btn" title="Editar" @onclick="() => OpenForm(p.Id)">✏️</button>
+                                        <button class="icon-btn" title="Eliminar" @onclick="() => ConfirmDelete(p.Id, p.Descripcion)">🗑️</button>
+                                    </div>
+                                </td>
+                            </Authorized>
+                        </AuthorizeView>
                     </tr>
                 }
             </tbody>

@@ -1,4 +1,6 @@
 using SistemaFacturacionSRI.BlazorApp.Components;
+using Microsoft.AspNetCore.Components.Authorization;
+using SistemaFacturacionSRI.BlazorApp.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,13 @@ builder.Services.AddScoped(sp => new HttpClient
     BaseAddress = new Uri("https://localhost:7139")//;http://localhost:5183 ")
 });
 // --- FIN DE CONFIGURACIÓN DE HTTPCLIENT ---
+
+// --- SEGURIDAD ---
+builder.Services.AddAuthorizationCore(); // Habilita el sistema de permisos
+builder.Services.AddScoped<SimpleAuthStateProvider>(); // Tu servicio personalizado
+// Conecta tu servicio con el sistema estándar de Blazor
+builder.Services.AddScoped<AuthenticationStateProvider>(p => p.GetRequiredService<SimpleAuthStateProvider>());
+
 
 var app = builder.Build();
 
