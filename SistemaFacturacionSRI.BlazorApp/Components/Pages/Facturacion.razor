@@ -1,0 +1,243 @@
+﻿@page "/facturacion"
+@using SistemaFacturacionSRI.Domain.Entities
+@inject HttpClient Http
+
+<PageTitle>Punto de Venta</PageTitle>
+
+<div class="container-fluid mt-4">
+    <h3>Punto de Venta</h3>
+    <p class="text-muted">Genera facturas electrónicas en tiempo real</p>
+
+    <div class="row">
+        <div class="col-md-8">
+
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-white">Datos del Cliente</div>
+                <div class="card-body">
+                    <div class="d-flex gap-2">
+                        <select class="form-select" @bind="clienteSeleccionadoId">
+                            <option value="0">-- Seleccione Cliente --</option>
+                            @if (listaClientes != null)
+                            {
+                                @foreach (var c in listaClientes)
+                                {
+                                    <option value="@c.Id">@c.NombreCompleto - @c.Identificacion</option>
+                                }
+                            }
+                        </select>
+                        <button class="btn btn-primary">+</button>
+                    </div>
+
+                    @if (clienteActual != null)
+                    {
+                        <div class="mt-3 p-2 bg-light rounded border">
+                            <div class="row">
+                                <div class="col-md-6"><strong>Nombre:</strong> @clienteActual.NombreCompleto</div>
+                                <div class="col-md-6"><strong>RUC/CI:</strong> @clienteActual.Identificacion</div>
+                                <div class="col-md-6"><strong>Email:</strong> @clienteActual.Email</div>
+                                <div class="col-md-6"><strong>Dirección:</strong> @clienteActual.Direccion</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">Buscar Productos</div>
+                <div class="card-body">
+                    <input type="text" class="form-control mb-3" placeholder="🔍 Buscar por código o nombre..."
+                           @bind="terminoBusqueda" @bind:event="oninput" />
+
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Stock</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (productosFiltrados != null)
+                                {
+                                    @foreach (var prod in productosFiltrados)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@prod.CodigoPrincipal</strong><br />
+                                                <small>@prod.Descripcion</small>
+                                            </td>
+                                            <td>$@prod.PrecioUnitario</td>
+                                            <td>
+                                                <span class="badge @(prod.Stock > 0 ? "bg-success" : "bg-danger")">
+                                                    @prod.Stock
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                        disabled="@(prod.Stock <= 0)"
+                                                        @onclick="() => AgregarAlCarrito(prod)">
+                                                    + Agregar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">🛒 Carrito de Compra</div>
+                <div class="card-body d-flex flex-column">
+
+                    @if (carrito.Count == 0)
+                    {
+                        <div class="text-center my-auto text-muted">
+                            <i class="bi bi-cart-x" style="font-size: 2rem;"></i>
+                            <p>Carrito vacío</p>
+                            <small>Busca y agrega productos</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush mb-3 flex-grow-1" style="overflow-y: auto; max-height: 400px;">
+                            @foreach (var item in carrito)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold">@item.ProductoNombre</div>
+                                        <small class="text-muted">@item.Cantidad x $@item.PrecioUnitario</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="d-block fw-bold">$@item.Subtotal</span>
+                                        <button class="btn btn-link text-danger p-0 text-decoration-none"
+                                                @onclick="() => RemoverDelCarrito(item)">
+                                            <small>Eliminar</small>
+                                        </button>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+
+                        <div class="border-top pt-3">
+                            <div class="d-flex justify-content-between">
+                                <span>Subtotal:</span>
+                                <span>$@carrito.Sum(x => x.Subtotal).ToString("F2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>IVA (15%):</span>
+                                <span>$@CalcularIVA().ToString("F2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between fs-4 fw-bold mt-2">
+                                <span>Total:</span>
+                                <span class="text-primary">$@((carrito.Sum(x => x.Subtotal) + CalcularIVA()).ToString("F2"))</span>
+                            </div>
+
+                            <button class="btn btn-success w-100 mt-3 py-2" disabled="@(clienteActual == null || carrito.Count == 0)">
+                                <i class="bi bi-check-circle"></i> Generar Factura
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Listas base
+    private List<Cliente>? listaClientes;
+    private List<Producto>? listaProductos;
+
+    // Selección
+    private int _clienteSeleccionadoId;
+    private int clienteSeleccionadoId
+    {
+        get => _clienteSeleccionadoId;
+        set
+        {
+            _clienteSeleccionadoId = value;
+            clienteActual = listaClientes?.FirstOrDefault(c => c.Id == value);
+        }
+    }
+    private Cliente? clienteActual;
+
+    // Buscador
+    private string terminoBusqueda = "";
+    private IEnumerable<Producto>? productosFiltrados =>
+        string.IsNullOrWhiteSpace(terminoBusqueda)
+        ? new List<Producto>() // No mostrar nada si no busca
+        : listaProductos?.Where(p => p.Descripcion.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+                                  || p.CodigoPrincipal.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase));
+
+    // Carrito (Clase interna simple para la UI)
+    public class ItemCarrito
+    {
+        public int ProductoId { get; set; }
+        public string ProductoNombre { get; set; } = "";
+        public decimal PrecioUnitario { get; set; }
+        public int Cantidad { get; set; }
+        public decimal PorcentajeIVA { get; set; }
+        public decimal Subtotal => PrecioUnitario * Cantidad;
+    }
+    private List<ItemCarrito> carrito = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Cargar datos usando tus API Controllers existentes
+            listaClientes = await Http.GetFromJsonAsync<List<Cliente>>("api/clientes");
+            listaProductos = await Http.GetFromJsonAsync<List<Producto>>("api/productos");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando datos: {ex.Message}");
+        }
+    }
+
+    private void AgregarAlCarrito(Producto prod)
+    {
+        var itemExistente = carrito.FirstOrDefault(x => x.ProductoId == prod.Id);
+
+        // Validación simple de stock visual
+        int cantidadEnCarrito = itemExistente?.Cantidad ?? 0;
+        if (cantidadEnCarrito + 1 > prod.Stock)
+        {
+            // Aquí podrías mostrar una alerta de "Stock insuficiente"
+            return;
+        }
+
+        if (itemExistente != null)
+        {
+            itemExistente.Cantidad++;
+        }
+        else
+        {
+            carrito.Add(new ItemCarrito
+            {
+                ProductoId = prod.Id,
+                ProductoNombre = prod.Descripcion,
+                PrecioUnitario = prod.PrecioUnitario,
+                PorcentajeIVA = prod.PorcentajeIVA,
+                Cantidad = 1
+            });
+        }
+    }
+
+    private void RemoverDelCarrito(ItemCarrito item)
+    {
+        carrito.Remove(item);
+    }
+
+    private decimal CalcularIVA()
+    {
+        return carrito.Sum(x => x.Subtotal * (x.PorcentajeIVA / 100));
+    }
+}
