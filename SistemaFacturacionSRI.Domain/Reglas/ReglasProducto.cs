@@ -33,7 +33,7 @@ namespace SistemaFacturacionSRI.Domain.Reglas
                 PermiteCambioIVA = false,
                 DescripcionRegla = "Bloqueado a 0%. Permite elegir Caducidad (Leche) o No (Libros)."
             },
-            new CategoriaSimulada
+            /*new CategoriaSimulada
             {
                 Id = 2,
                 Nombre = "II. Construcción (Materiales al 5%)",
@@ -42,7 +42,7 @@ namespace SistemaFacturacionSRI.Domain.Reglas
                 EsPereciblePorDefecto = false,
                 PermiteCambioIVA = false,
                 DescripcionRegla = "Bloqueado a 5%. Fijo como No Perecible."
-            },
+            },*/
             new CategoriaSimulada
             {
                 Id = 3,
