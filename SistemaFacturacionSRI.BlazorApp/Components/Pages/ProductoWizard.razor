@@ -1,0 +1,100 @@
+﻿@page "/productos/crear"
+@page "/productos/editar/{Id:int}"
+@inject IProductoService ProductoService
+@inject ITarifaIvaService TarifaIvaService // Se asume la existencia de este servicio
+@inject NavigationManager NavManager
+
+@if (currentStep == 1)
+{
+    <ProductoWizardPaso1 Producto="productoDto" TarifasIva="tarifasIva" OnNext="GoToStep2" />
+}
+else if (currentStep == 2)
+{
+    <ProductoWizardPaso2 Producto="productoDto" OnPrevious="GoToStep1" OnSave="HandleSave" OnValidateUnicity="HandleUnicityValidation" UnicidadDuplicada="isUnicidadDuplicada" />
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; } // Para el modo edición
+
+    private int currentStep = 1;
+    private CreateProducto productoDto = new CreateProducto();
+    private List<TarifaIvaDto> tarifasIva = new List<TarifaIvaDto>();
+    private bool isUnicidadDuplicada = false;
+
+    // Se asume que este es un DTO simplificado del lado del cliente si se está editando
+    // Para el CREATE se usa directamente CreateProducto
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargar tarifas de IVA desde el backend
+        // Se asume un mapeo simple de la entidad TarifaIva a TarifaIvaDto
+        // Es esencial tener un servicio para esto.
+        // tarifasIva = await TarifaIvaService.GetAllTarifasAsync(); 
+
+        // Lógica de carga para Edición (si Id > 0)
+        if (Id > 0)
+        {
+            // Cargar datos del producto, mapear a un UpdateProducto/CreateProducto DTO y empezar en Step 2
+            // Simplificado para la demostración:
+            // var p = await ProductoService.GetProductoByIdAsync(Id);
+            // ... Mapear y configurar currentStep = 2;
+        }
+    }
+
+    private void GoToStep1() => currentStep = 1;
+
+    private void GoToStep2() 
+    {
+        // Aquí se podría poner lógica de validación de Step 1
+        currentStep = 2;
+    }
+    
+    // Lógica principal: Validar unicidad usando el servicio de backend
+    private async Task HandleUnicityValidation()
+    {
+        // En el backend ya se implementó la lógica de ProductoService.AddProductoAsync
+        // Para usarlo en el frontend, se debería exponer un endpoint de validación pura:
+        // bool isDuplicate = await ProductoService.CheckUnicidadAsync(productoDto.NombreGenerico, productoDto.Marca, productoDto.Presentacion);
+        // isUnicidadDuplicada = isDuplicate;
+        
+        // Simulación:
+        isUnicidadDuplicada = false; // Implementar la llamada al backend real aquí.
+    }
+
+    private async Task HandleSave()
+    {
+        if (isUnicidadDuplicada)
+        {
+            // Snackbar.Add("Error: Ya existe un producto con esta combinación.", Severity.Error);
+            return;
+        }
+        
+        try
+        {
+            // Si es un nuevo producto
+            if (Id == 0)
+            {
+                await ProductoService.AddProductoAsync(productoDto);
+                // Snackbar.Add("Producto creado exitosamente.", Severity.Success);
+            }
+            // Si es edición (usaría un UpdateProducto DTO)
+            else
+            {
+                // await ProductoService.UpdateProductoAsync(productoDto as UpdateProducto);
+                // Snackbar.Add("Producto actualizado exitosamente.", Severity.Success);
+            }
+            
+            NavManager.NavigateTo("/productos");
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Capturar la excepción del backend (ej: "Ya existe un producto con ese código principal.")
+            // Snackbar.Add($"Error de negocio: {ex.Message}", Severity.Error);
+        }
+        catch (Exception)
+        {
+            // Snackbar.Add("Ocurrió un error inesperado al guardar.", Severity.Error);
+        }
+    }
+}

@@ -17,7 +17,7 @@ namespace SistemaFacturacionSRI.Domain.Entities
         public int ProductoId { get; set; } // Clave foránea
 
         [ForeignKey("ProductoId")]
-        public virtual Producto Producto { get; set; } // Propiedad de navegación
+        public virtual Producto? Producto { get; set; } // Propiedad de navegación (Nullable para evitar warnings)
 
         [Required]
         public int CantidadInicial { get; set; }
@@ -25,14 +25,23 @@ namespace SistemaFacturacionSRI.Domain.Entities
         [Required]
         public int CantidadActual { get; set; }
 
+        // --- CAMPOS DE COSTO (PARA KARDEX Y VALORACIÓN) ---
+
+        // 1. Costo Total del Lote (Input directo del proveedor en la factura)
         [Required]
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal PrecioCompra { get; set; }
+        public decimal CostoTotalLote { get; set; }
 
-        // CAMBIO 2: Se hace nullable (con '?') para lotes sin caducidad.
+        // 2. Precio Unitario de Compra (Calculado: CostoTotalLote / CantidadInicial).
+        // Se usa alta precisión (18, 5) para un cálculo preciso del costo.
+        [Required]
+        [Column(TypeName = "decimal(18, 5)")]
+        public decimal PrecioCompraUnitario { get; set; }
+
+        // --- CAMPOS DE TRAZABILIDAD ---
+
         public DateTime? FechaCaducidad { get; set; }
 
-        // CAMBIO 3: Se mantiene UtcNow para la fecha universal (hora del sistema).
-        public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
+        public DateTime FechaRegistro { get; set; } = DateTime.UtcNow; // Fecha de ingreso del lote
     }
 }

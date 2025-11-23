@@ -38,6 +38,7 @@ builder.Services.AddScoped<ILoteProductoService, LoteProductoService>();
 builder.Services.AddScoped<IFacturaService, FacturaService>();
 
 
+
 // Add services to the container.
 builder.Services.AddControllers();
 

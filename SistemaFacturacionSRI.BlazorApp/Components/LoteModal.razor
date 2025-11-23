@@ -1,0 +1,99 @@
+﻿@if (IsVisible)
+{
+    <div class="modal d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar Nuevo Lote de Stock</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@loteDto" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label>Cantidad Inicial:</label>
+                            <InputNumber @bind-Value="loteDto.CantidadInicial" class="form-control" @oninput="UpdateCosts" />
+                            <ValidationMessage For="@(() => loteDto.CantidadInicial)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>Costo Total del Lote:</label>
+                            <InputNumber @bind-Value="loteDto.CostoTotalLote" class="form-control" @oninput="UpdateUnitCost" />
+                            <ValidationMessage For="@(() => loteDto.CostoTotalLote)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>Precio Unitario de Compra:</label>
+                            <InputNumber @bind-Value="loteDto.PrecioCompraUnitario" class="form-control" @oninput="UpdateTotalCost" />
+                            <ValidationMessage For="@(() => loteDto.PrecioCompraUnitario)" />
+                        </div>
+
+                        @if (EsPerecible)
+                        {
+                            <div class="mb-3">
+                                <label>Fecha de Caducidad:</label>
+                                <InputDate @bind-Value="loteDto.FechaCaducidad" class="form-control" />
+                                <ValidationMessage For="@(() => loteDto.FechaCaducidad)" />
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-success">Guardar Lote</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public bool EsPerecible { get; set; } // Bandera del Producto padre
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<CreateLoteProducto> OnSave { get; set; }
+
+    private CreateLoteProducto loteDto = new CreateLoteProducto();
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible)
+        {
+            loteDto = new CreateLoteProducto { FechaCaducidad = EsPerecible ? (DateTime?)DateTime.Now.AddMonths(1) : null };
+        }
+    }
+
+    private void CloseModal() => OnClose.InvokeAsync();
+
+    private async Task HandleSubmit() => await OnSave.InvokeAsync(loteDto);
+
+    private void UpdateCosts()
+    {
+        UpdateUnitCost();
+        StateHasChanged(); // Forzar actualización de UI después de cambiar Cantidad
+    }
+
+    // Lógica reactiva: Si cambia Costo Total, recalcular Precio Unitario
+    private void UpdateUnitCost()
+    {
+        if (loteDto.CantidadInicial > 0)
+        {
+            loteDto.PrecioCompraUnitario = loteDto.CostoTotalLote / loteDto.CantidadInicial;
+        }
+        else
+        {
+            loteDto.PrecioCompraUnitario = 0.00m;
+        }
+    }
+
+    // Lógica reactiva: Si cambia Precio Unitario, recalcular Costo Total
+    private void UpdateTotalCost()
+    {
+        loteDto.CostoTotalLote = loteDto.PrecioCompraUnitario * loteDto.CantidadInicial;
+    }
+}

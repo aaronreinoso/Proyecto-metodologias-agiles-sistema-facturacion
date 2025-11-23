@@ -1,516 +1,99 @@
 ﻿@page "/productos"
-@using SistemaFacturacionSRI.Domain.DTOs.Productos
-@using SistemaFacturacionSRI.Domain.Entities
-@using Microsoft.AspNetCore.Components.Authorization
-@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IProductoService ProductoService
+@inject ISnackbar Snackbar // Asumiendo que utiliza un componente de Snackbar para notificaciones
 
-<PageTitle>Gestión de Productos</PageTitle>
+<h3>Gestión de Productos 📦</h3>
+<p>Listado general de ítems disponibles para venta.</p>
 
-<style>
-    /* ... (Tus estilos CSS se mantienen idénticos) ... */
-    /* 🌤️ Fondo general */
-    body {
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        background: linear-gradient(180deg, #fafafa 0%, #f2f3f5 100%);
-        color: #111418;
-        margin: 0;
-        padding: 0;
-        letter-spacing: 0.01em;
-    }
-
-    /* 🪶 Contenedor principal */
-    .container {
-        max-width: 1100px;
-        margin: 60px auto;
-        padding: 48px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-        .container:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-
-    /* 🧭 Encabezado */
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 28px;
-    }
-
-        .header h1 {
-            font-weight: 800;
-            font-size: 32px;
-            letter-spacing: -0.03em;
-            background: linear-gradient(90deg, #101010, #3b3b3b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-    /* ✨ Botón principal */
-    .btn-primary {
-        background: linear-gradient(135deg, #0058ff, #4f9eff);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        padding: 10px 18px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-        cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0, 85, 255, 0.25);
-        transition: all 0.2s ease;
-    }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 85, 255, 0.35);
-            background: linear-gradient(135deg, #2563eb, #5ea0ff);
-        }
-
-    /* 🧾 Tabla */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        border-spacing: 0;
-        background: rgba(255, 255, 255, 0.85);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    th {
-        text-align: left;
-        padding: 14px 16px;
-        color: #333;
-        font-weight: 700;
-        font-size: 15px;
-        border-bottom: 1px solid #e5e7eb;
-        background: rgba(250, 250, 250, 0.8);
-    }
-
-    td {
-        padding: 14px 16px;
-        color: #222;
-        font-size: 15px;
-        border-bottom: 1px solid #f0f2f5;
-        transition: background-color 0.2s ease;
-    }
-
-    tr:hover td {
-        background: rgba(247, 249, 252, 0.6);
-    }
-
-    .actions {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-    }
-
-    /* 🧿 Botones de acción */
-    .icon-btn {
-        border: none;
-        background: none;
-        font-size: 18px;
-        opacity: 0.6;
-        transition: opacity 0.2s ease, transform 0.15s ease;
-        cursor: pointer;
-    }
-
-        .icon-btn:hover {
-            opacity: 1;
-            transform: scale(1.1);
-        }
-
-    /* 🌫️ Modal */
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background-color: rgba(255, 255, 255, 0.65);
-        backdrop-filter: blur(10px);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        animation: fadeIn 0.25s ease-in-out;
-    }
-
-    .modal-box {
-        background: white;
-        border-radius: 18px;
-        padding: 36px;
-        width: 90%;
-        max-width: 480px;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-        border: 1px solid rgba(230, 232, 236, 0.6);
-        animation: slideUp 0.25s ease-out;
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @@keyframes slideUp {
-        from {
-            transform: translateY(10px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-    }
-
-        .modal-header h3 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #0f172a;
-            margin: 0;
-        }
-
-    .close-btn {
-        border: none;
-        background: none;
-        font-size: 22px;
-        cursor: pointer;
-        color: #94a3b8;
-        transition: color 0.2s ease;
-    }
-
-        .close-btn:hover {
-            color: #1e293b;
-        }
-
-    label {
-        font-weight: 600;
-        font-size: 14px;
-        color: #374151;
-        display: block;
-        margin-top: 10px;
-    }
-
-    input, select {
-        width: 100%;
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        background: #f9fafb;
-        margin-top: 4px;
-        font-size: 15px;
-        color: #111827;
-        transition: all 0.2s ease;
-    }
-
-        input:focus, select:focus {
-            background-color: #fff;
-            border-color: #2563eb;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-
-    .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 24px;
-    }
-
-    .btn-secondary {
-        background: #f1f5f9;
-        border-radius: 10px;
-        color: #111827;
-        border: 1px solid #e2e8f0;
-        padding: 9px 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s ease;
-    }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-</style>
-
-<div class="container">
-    <div class="header">
-        <h1>📦 Gestión de Productos</h1>
-        <AuthorizeView Roles="Administrador">
-            <Authorized>
-                <button class="btn-primary" @onclick="() => OpenForm(0)">＋ Nuevo Producto</button>
-            </Authorized>
-        </AuthorizeView>
-    </div>
-
-    @if (productos == null)
-    {
-        <div style="text-align:center; padding:40px; color:#6b7280;">Cargando productos...</div>
-    }
-    else if (errorMessage != null)
-    {
-        <div style="color:#ef4444; text-align:center; font-weight:600; padding:20px;">⚠️ @errorMessage</div>
-    }
-    else if (productos.Count == 0)
-    {
-        <div style="text-align:center; padding:30px; color:#6b7280; font-style:italic;">No hay productos registrados.</div>
-    }
-    else
-    {
-        <table>
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Descripción</th>
-                    <th>Tipo</th>
-                    <th>Precio</th>
-                    <th>IVA (%)</th>
-                    <th>Stock</th>
-                    <AuthorizeView Roles="Administrador">
-                        <Authorized>
-                            <th style="text-align:center;">Acciones</th>
-                        </Authorized>
-                    </AuthorizeView>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in productos)
-                {
-                    <tr>
-                        <td>@p.CodigoPrincipal</td>
-                        <td>@p.Descripcion</td>
-                        <td>@p.TipoProducto</td>
-                        <td>$@p.PrecioUnitario.ToString("0.00")</td>
-                        <td>@p.PorcentajeIVA%</td>
-                        <td>@p.Stock</td>
-                        <AuthorizeView Roles="Administrador">
-                            <Authorized>
-                                <td>
-                                    <div class="actions">
-                                        <button class="icon-btn" title="Editar" @onclick="() => OpenForm(p.Id)">✏️</button>
-                                        <button class="icon-btn" title="Eliminar" @onclick="() => ConfirmDelete(p.Id, p.Descripcion)">🗑️</button>
-                                    </div>
-                                </td>
-                            </Authorized>
-                        </AuthorizeView>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    }
+<div class="d-flex justify-content-between mb-3">
+    <input type="text" class="form-control w-25" placeholder="Buscar por Código, Nombre, Marca o Presentación..." @oninput="FiltrarProductos" />
+    <button class="btn btn-primary" @onclick="GoToCreateWizard">
+        <i class="oi oi-plus"></i> Nuevo Producto
+    </button>
 </div>
 
-@if (showFormModal)
+@if (productos == null)
 {
-    <div class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3>@(currentProducto.Id == 0 ? "Registrar nuevo producto" : $"Editar: {currentProducto.CodigoPrincipal}")</h3>
-                <button class="close-btn" @onclick="CloseForm">×</button>
-            </div>
-
-            <EditForm Model="@currentProducto" OnValidSubmit="@HandleSubmit">
-                <label>Código Principal</label>
-                <InputText @bind-Value="currentProducto.CodigoPrincipal" />
-
-                <label>Código Auxiliar</label>
-                <InputText @bind-Value="currentProducto.CodigoAuxiliar" />
-
-                <label>Descripción</label>
-                <InputText @bind-Value="currentProducto.Descripcion" />
-
-                <label>Tipo</label>
-                <InputSelect @bind-Value="currentProducto.TipoProducto">
-                    <option value="Bien">Bien</option>
-                    <option value="Servicio">Servicio</option>
-                </InputSelect>
-
-                <label>Precio Unitario</label>
-                <InputNumber TValue="decimal" @bind-Value="currentProducto.PrecioUnitario" />
-
-                <label>IVA (%)</label>
-                <InputSelect @bind-Value="currentProducto.PorcentajeIVA">
-                    <option value="0">0</option>
-                    <option value="8">8</option>
-                    <option value="12">12</option>
-                    <option value="15">15</option>
-                </InputSelect>
-
-                <label>Stock</label>
-                <InputNumber TValue="decimal?" @bind-Value="currentProducto.Stock" />
-
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" @onclick="CloseForm">Cancelar</button>
-                    <button type="submit" class="btn-primary" disabled="@isSubmitting">
-                        @(isSubmitting ? "Procesando..." : (currentProducto.Id == 0 ? "Guardar" : "Actualizar"))
-                    </button>
-                </div>
-            </EditForm>
-        </div>
-    </div>
+    <p><em>Cargando productos...</em></p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Código Principal</th>
+                <th>Descripción Completa</th>
+                <th>IVA</th>
+                <th>Stock</th>
+                <th>PVP</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in ProductosFiltrados)
+            {
+                <tr @onclick="() => GoToDetail(p.Id)" style="cursor:pointer">
+                    <td>@p.CodigoPrincipal</td>
+                    <td>@p.Descripcion</td>
+                    <td>@p.TarifaIva?.Porcentaje%</td>
+                    <td>@p.Stock</td>
+                    <td>@p.PrecioUnitario.ToString("C2")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" @onclick:stopPropagation @onclick="() => GoToDetail(p.Id)">
+                            <i class="oi oi-magnifying-glass"></i> Ver Lotes
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }
 
-@if (showDeleteModal)
-{
-    <div class="modal-overlay">
-        <div class="modal-box">
-            <h3 style="color:#ef4444;">Confirmar eliminación</h3>
-            <p>¿Deseas eliminar el producto <b>@productoToDeleteName</b>?</p>
-            <div class="modal-actions">
-                <button class="btn-secondary" @onclick="CancelDelete">Cancelar</button>
-                <button class="btn-primary" style="background:#ef4444" @onclick="HandleDelete" disabled="@isSubmitting">Eliminar</button>
-            </div>
-        </div>
-    </div>
-}
 
 @code {
     private List<Producto>? productos;
-    private string? errorMessage;
-    private bool showFormModal = false;
-    private UpdateProducto currentProducto = new();
-    private bool isSubmitting = false;
-    private bool showDeleteModal = false;
-    private int productoToDeleteId;
-    private string productoToDeleteName = string.Empty;
+    private List<Producto>? ProductosFiltrados { get; set; }
 
-    protected override async Task OnInitializedAsync() => await LoadProductos();
-
-    private async Task LoadProductos()
+    protected override async Task OnInitializedAsync()
     {
-        productos = null;
-        errorMessage = null;
         try
         {
-            productos = await Http.GetFromJsonAsync<List<Producto>>("api/productos");
+            productos = await ProductoService.GetAllProductosAsync();
+            ProductosFiltrados = productos;
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error al cargar productos: {ex.Message}";
+            Snackbar.Add($"Error al cargar: {ex.Message}", Severity.Error);
         }
     }
 
-    private async Task OpenForm(int id)
+    private void FiltrarProductos(ChangeEventArgs e)
     {
-        if (id == 0)
-            currentProducto = new();
+        string filtro = e.Value?.ToString()?.ToLower() ?? "";
+        if (string.IsNullOrWhiteSpace(filtro))
+        {
+            ProductosFiltrados = productos;
+        }
         else
         {
-            try
-            {
-                var producto = await Http.GetFromJsonAsync<Producto>($"api/productos/{id}");
-                if (producto != null)
-                    currentProducto = new UpdateProducto
-                    {
-                        Id = producto.Id,
-                        CodigoPrincipal = producto.CodigoPrincipal,
-                        CodigoAuxiliar = producto.CodigoAuxiliar,
-                        Descripcion = producto.Descripcion,
-                        TipoProducto = producto.TipoProducto,
-                        PrecioUnitario = producto.PrecioUnitario,
-                        PorcentajeIVA = producto.PorcentajeIVA,
-                        Stock = producto.Stock
-                    };
-            }
-            catch (Exception ex)
-            {
-                errorMessage = $"Error al cargar producto: {ex.Message}";
-                return;
-            }
-        }
-        showFormModal = true;
-        StateHasChanged();
-    }
-
-    private void CloseForm()
-    {
-        showFormModal = false;
-        currentProducto = new();
-        StateHasChanged();
-    }
-
-    private async Task HandleSubmit()
-    {
-        isSubmitting = true;
-        try
-        {
-            HttpResponseMessage response;
-            if (currentProducto.Id == 0)
-                response = await Http.PostAsJsonAsync("api/productos", currentProducto);
-            else
-                response = await Http.PutAsJsonAsync($"api/productos/{currentProducto.Id}", currentProducto);
-
-            if (response.IsSuccessStatusCode)
-            {
-                CloseForm();
-                await LoadProductos();
-            }
-            else
-                errorMessage = $"Error: {response.ReasonPhrase}";
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error en la solicitud: {ex.Message}";
-        }
-        finally
-        {
-            isSubmitting = false;
+            ProductosFiltrados = productos!
+                .Where(p =>
+                    p.CodigoPrincipal.ToLower().Contains(filtro) ||
+                    p.NombreGenerico.ToLower().Contains(filtro) ||
+                    p.Marca.ToLower().Contains(filtro) ||
+                    p.Presentacion.ToLower().Contains(filtro))
+                .ToList();
         }
     }
 
-    private void ConfirmDelete(int id, string name)
+    private void GoToCreateWizard()
     {
-        productoToDeleteId = id;
-        productoToDeleteName = name;
-        showDeleteModal = true;
-        StateHasChanged();
+        NavManager.NavigateTo("/productos/crear");
     }
 
-    private void CancelDelete()
+    private void GoToDetail(int id)
     {
-        showDeleteModal = false;
-        StateHasChanged();
-    }
-
-    private async Task HandleDelete()
-    {
-        isSubmitting = true;
-        try
-        {
-            var response = await Http.DeleteAsync($"api/productos/{productoToDeleteId}");
-            if (response.IsSuccessStatusCode)
-                await LoadProductos();
-            else
-                errorMessage = "Error al eliminar producto.";
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isSubmitting = false;
-            showDeleteModal = false;
-            StateHasChanged();
-        }
+        NavManager.NavigateTo($"/productos/detalle/{id}");
     }
 }

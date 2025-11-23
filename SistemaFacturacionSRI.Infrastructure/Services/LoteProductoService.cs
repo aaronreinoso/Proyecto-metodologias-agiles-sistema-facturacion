@@ -21,11 +21,51 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
         public async Task<LoteProducto> AddLoteAsync(CreateLoteProducto loteDto)
         {
-            // 1. Validar que el producto asociado exista.
+            // 1. Validar que el producto asociado exista y obtener su bandera EsPerecible.
+            // Ya no incluimos CategoriaProducto
             var productoAsociado = await _context.Productos.FindAsync(loteDto.ProductoId);
+
             if (productoAsociado == null)
             {
                 throw new InvalidOperationException($"No se puede registrar el lote porque el producto con ID {loteDto.ProductoId} no existe.");
+            }
+
+            // --- LÓGICA DE CÁLCULO DE COSTO UNITARIO ---
+            decimal costoUnitarioCalculado;
+            decimal costoTotalCalculado;
+
+            bool isTotalInput = loteDto.CostoTotalLote.HasValue;
+            bool isUnitarioInput = loteDto.PrecioUnitarioInput.HasValue;
+
+            if (isTotalInput && isUnitarioInput)
+            {
+                throw new InvalidOperationException("Solo puede ingresar el costo total del lote O el costo unitario, no ambos.");
+            }
+            else if (isTotalInput)
+            {
+                if (loteDto.Cantidad <= 0)
+                    throw new InvalidOperationException("La cantidad debe ser mayor a cero para calcular el costo unitario.");
+
+                // Usamos el CostoTotalLote para calcular el unitario
+                costoTotalCalculado = loteDto.CostoTotalLote!.Value;
+                costoUnitarioCalculado = costoTotalCalculado / loteDto.Cantidad;
+            }
+            else if (isUnitarioInput)
+            {
+                // Usamos el PrecioUnitarioInput para calcular el total
+                costoUnitarioCalculado = loteDto.PrecioUnitarioInput!.Value;
+                costoTotalCalculado = costoUnitarioCalculado * loteDto.Cantidad;
+            }
+            else
+            {
+                throw new InvalidOperationException("Debe ingresar el costo total del lote o el costo unitario.");
+            }
+
+            // --- LÓGICA DE VALIDACIÓN DE CADUCIDAD ---
+            // CORREGIDO: Leemos la bandera EsPerecible directamente del producto
+            if (productoAsociado.EsPerecible && !loteDto.FechaCaducidad.HasValue)
+            {
+                throw new InvalidOperationException("Este producto es perecible y requiere registrar la fecha de caducidad del lote.");
             }
 
             // 2. Mapear el DTO a la entidad de dominio.
@@ -34,7 +74,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 ProductoId = loteDto.ProductoId,
                 CantidadInicial = loteDto.Cantidad,
                 CantidadActual = loteDto.Cantidad,
-                PrecioCompra = loteDto.PrecioCompra,
+
+                // Asignación de los campos calculados
+                CostoTotalLote = costoTotalCalculado,
+                PrecioCompraUnitario = costoUnitarioCalculado,
+
                 FechaCaducidad = loteDto.FechaCaducidad,
                 FechaRegistro = DateTime.UtcNow
             };
@@ -43,13 +87,14 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             _context.LotesProducto.Add(nuevoLote);
             productoAsociado.Stock += loteDto.Cantidad;
 
-            // 4. Guardar todos los cambios en una sola transacción.
+            // 4. Guardar todos los cambios.
             await _context.SaveChangesAsync();
 
             return nuevoLote;
         }
 
-        public async Task<LoteProducto> GetLoteByIdAsync(int id)
+        // Se corrigió el tipo de retorno para ser nullable Task<LoteProducto?>
+        public async Task<LoteProducto?> GetLoteByIdAsync(int id)
         {
             return await _context.LotesProducto.FindAsync(id);
         }

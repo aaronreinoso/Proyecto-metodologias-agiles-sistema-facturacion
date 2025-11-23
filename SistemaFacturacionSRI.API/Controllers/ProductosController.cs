@@ -2,6 +2,9 @@
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Productos;
 using SistemaFacturacionSRI.Domain.Entities;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
@@ -36,8 +39,14 @@ namespace SistemaFacturacionSRI.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Producto>> PostProducto(CreateProducto producto)
         {
-            if (string.IsNullOrEmpty(producto.CodigoPrincipal) || string.IsNullOrEmpty(producto.Descripcion))
-                return BadRequest("Código y descripción son obligatorios.");
+            // 1. Validar el modelo (data annotations).
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // 2. ELIMINAMOS la línea obsoleta que causaba el error CS1061.
+            //    La validación de unicidad de código y campos desglosados se hace en ProductoService.
 
             try
             {
@@ -46,7 +55,13 @@ namespace SistemaFacturacionSRI.API.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return Conflict(ex.Message);
+                // Conflict 409: Ya existe el código principal o la combinación (Nombre+Marca+Presentación)
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // Error 500: Error interno del servidor
+                return StatusCode(500, new { message = "Error interno al crear el producto: " + ex.Message });
             }
         }
 
@@ -54,13 +69,25 @@ namespace SistemaFacturacionSRI.API.Controllers
         public async Task<IActionResult> PutProducto(int id, UpdateProducto producto)
         {
             if (id != producto.Id)
-                return BadRequest("El ID no coincide.");
+                return BadRequest("El ID de la ruta no coincide con el ID del producto.");
 
-            var actualizado = await _productoService.UpdateProductoAsync(producto);
-            if (!actualizado)
-                return NotFound();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return NoContent();
+            try
+            {
+                var actualizado = await _productoService.UpdateProductoAsync(producto);
+                if (!actualizado)
+                    return NotFound();
+
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
