@@ -6,6 +6,7 @@ namespace SistemaFacturacionSRI.Application.Interfaces
     {
         // CREATE: Registra un nuevo cliente
         Task<Cliente> AddClienteAsync(CreateCliente cliente);
+        
         // READ: Obtiene todos los clientes
         Task<List<Cliente>> GetAllClientesAsync();
 

@@ -42,15 +42,24 @@ namespace SistemaFacturacionSRI.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Cliente>> PostCliente(CreateCliente cliente)
         {
-            // Validaciones básicas: puedes expandir esto con FluentValidation
-            if (string.IsNullOrEmpty(cliente.Identificacion) || string.IsNullOrEmpty(cliente.NombreCompleto))
+            try
             {
-                return BadRequest("La identificación y el nombre son obligatorios.");
+                // Intentamos guardar. Si el RUC está mal, el servicio lanzará una excepción.
+                var newCliente = await _clienteService.AddClienteAsync(cliente);
+                return CreatedAtAction(nameof(GetCliente), new { id = newCliente.Id }, newCliente);
             }
-
-            var newCliente = await _clienteService.AddClienteAsync(cliente);
-            // Retorna 201 Created y la ubicación del nuevo recurso
-            return CreatedAtAction(nameof(GetCliente), new { id = newCliente.Id }, newCliente);
+            catch (ArgumentException ex)
+            {
+                // AQUÍ ESTÁ EL TRUCO:
+                // Capturamos el error (ej: "RUC Incorrecto") y devolvemos un "BadRequest" (400).
+                // Esto evita el Error 500 y el mensaje gigante.
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                // Solo si pasa algo muy grave (base de datos caída, etc.)
+                return StatusCode(500, "Error interno: " + ex.Message);
+            }
         }
 
         // PUT: api/Clientes/5

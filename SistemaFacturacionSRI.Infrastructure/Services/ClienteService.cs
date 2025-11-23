@@ -2,6 +2,7 @@
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Clientes;
 using SistemaFacturacionSRI.Domain.Entities;
+using SistemaFacturacionSRI.Domain.Validations; 
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 
 namespace SistemaFacturacionSRI.Infrastructure.Services
@@ -15,44 +16,64 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             _context = context;
         }
 
+        // --- CREATE ---
         public async Task<Cliente> AddClienteAsync(CreateCliente cliente)
         {
-            // Mapeo DTO a Entidad
+            // 1. VALIDACIONES LÓGICAS (SRI)
+            // Validamos Identificación (RUC/Cédula/Pasaporte)
+            var valId = ValidadorCliente.ValidarIdentificacion(cliente.TipoIdentificacion, cliente.Identificacion);
+            if (!valId.EsValido)
+                throw new ArgumentException(valId.Mensaje);
+
+            // Validamos Correo
+            var valCorreo = ValidadorCliente.ValidarCorreo(cliente.Email);
+            if (!valCorreo.EsValido)
+                throw new ArgumentException(valCorreo.Mensaje);
+
+            // Validamos Dirección
+            var valDir = ValidadorCliente.ValidarDireccion(cliente.Direccion);
+            if (!valDir.EsValido)
+                throw new ArgumentException(valDir.Mensaje);
+
+            // 2. VALIDAR DUPLICADOS EN BD
+            // Verificamos si ya existe alguien con esa identificación
+            bool existe = await _context.Clientes.AnyAsync(c => c.Identificacion == cliente.Identificacion);
+            if (existe)
+                throw new ArgumentException($"El cliente con identificación {cliente.Identificacion} ya está registrado.");
+
+            // 3. MAPEO (DTO -> Entidad)
             var nuevocliente = new Cliente
             {
+                TipoIdentificacion = cliente.TipoIdentificacion, // Nuevo campo
                 Identificacion = cliente.Identificacion,
-                NombreCompleto = cliente.NombreCompleto,
-                Direccion = cliente.Direccion,
+                NombreCompleto = cliente.NombreCompleto.ToUpper(), // SRI prefiere mayúsculas
+                Direccion = cliente.Direccion.Replace("\n", " ").Trim(), // Limpiamos saltos de línea
                 Telefono = cliente.Telefono,
-                Email = cliente.Email
+                Email = cliente.Email,
+                Pais = cliente.Pais ?? "Ecuador" // Valor por defecto si es nulo
             };
 
             _context.Clientes.Add(nuevocliente);
             await _context.SaveChangesAsync();
 
-            // Mapeo Entidad a DTO para retornar el objeto creado con el Id generado
-            return new Cliente
-            {
-                Identificacion = cliente.Identificacion,
-                NombreCompleto = cliente.NombreCompleto,
-                Direccion = cliente.Direccion,
-                Telefono = cliente.Telefono,
-                Email = cliente.Email
-            };
+            return nuevocliente;
         }
 
         // --- READ ALL ---
         public async Task<List<Cliente>> GetAllClientesAsync()
         {
+            // Nota: Aquí podrías incluir también TipoIdentificacion y Pais en el Select si los necesitas en la vista
             return await _context.Clientes
                 .Select(c => new Cliente
                 {
                     Id = c.Id,
+                    TipoIdentificacion = c.TipoIdentificacion, // <--- Agregado
                     Identificacion = c.Identificacion,
                     NombreCompleto = c.NombreCompleto,
                     Direccion = c.Direccion,
                     Telefono = c.Telefono,
-                    Email = c.Email
+                    Email = c.Email,
+                    Pais = c.Pais // <--- Agregado
                 })
                 .ToListAsync();
         }
@@ -65,11 +86,13 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 .Select(c => new Cliente
                 {
                     Id = c.Id,
+                    TipoIdentificacion = c.TipoIdentificacion, // <--- Agregado
                     Identificacion = c.Identificacion,
                     NombreCompleto = c.NombreCompleto,
                     Direccion = c.Direccion,
                     Telefono = c.Telefono,
-                    Email = c.Email
+                    Email = c.Email,
+                    Pais = c.Pais // <--- Agregado
                 })
                 .FirstOrDefaultAsync();
         }
@@ -77,19 +100,32 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
         // --- UPDATE ---
         public async Task<bool> UpdateClienteAsync(UpdateCliente cliente)
         {
-            var borrarCliente = await _context.Clientes.FindAsync(cliente.Id);
+            var clienteDb = await _context.Clientes.FindAsync(cliente.Id);
 
-            if (borrarCliente == null)
-            {
-                return false; // Cliente no encontrado
-            }
+            if (clienteDb == null) return false;
 
-            // Actualización de propiedades
-            borrarCliente.Identificacion = cliente.Identificacion;
-            borrarCliente.NombreCompleto = cliente.NombreCompleto;
-            borrarCliente.Direccion = cliente.Direccion;
-            borrarCliente.Telefono = cliente.Telefono;
-            borrarCliente.Email = cliente.Email;
+            // 1. VALIDACIONES LÓGICAS
+            var valId = ValidadorCliente.ValidarIdentificacion(cliente.TipoIdentificacion, cliente.Identificacion);
+            if (!valId.EsValido) throw new ArgumentException(valId.Mensaje);
+
+            var valCorreo = ValidadorCliente.ValidarCorreo(cliente.Email);
+            if (!valCorreo.EsValido) throw new ArgumentException(valCorreo.Mensaje);
+
+            // 2. VALIDAR DUPLICADOS (Excluyendo al propio usuario)
+            bool duplicado = await _context.Clientes
+                .AnyAsync(c => c.Identificacion == cliente.Identificacion && c.Id != cliente.Id);
+
+            if (duplicado)
+                throw new ArgumentException($"La identificación {cliente.Identificacion} ya pertenece a otro cliente.");
+
+            // 3. ACTUALIZAR CAMPOS
+            clienteDb.TipoIdentificacion = cliente.TipoIdentificacion;
+            clienteDb.Identificacion = cliente.Identificacion;
+            clienteDb.NombreCompleto = cliente.NombreCompleto.ToUpper();
+            clienteDb.Direccion = cliente.Direccion.Replace("\n", " ").Trim();
+            clienteDb.Telefono = cliente.Telefono;
+            clienteDb.Email = cliente.Email;
+            clienteDb.Pais = cliente.Pais ?? "Ecuador";
 
             await _context.SaveChangesAsync();
             return true;
@@ -100,10 +136,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
         {
             var cliente = await _context.Clientes.FindAsync(id);
 
-            if (cliente == null)
-            {
-                return false; // Cliente no encontrado
-            }
+            if (cliente == null) return false;
 
             _context.Clientes.Remove(cliente);
             await _context.SaveChangesAsync();

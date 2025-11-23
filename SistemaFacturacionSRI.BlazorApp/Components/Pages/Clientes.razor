@@ -1,143 +1,258 @@
 ﻿@page "/clientes"
 @using SistemaFacturacionSRI.Domain.DTOs.Clientes
 @using SistemaFacturacionSRI.Domain.Entities
+@using SistemaFacturacionSRI.Domain.Enumss
 @inject HttpClient Http
 
 <PageTitle>Gestión de Clientes</PageTitle>
 
 <style>
     body {
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        background: linear-gradient(180deg, #fafafa 0%, #f3f4f6 100%);
-        color: #111418;
-        letter-spacing: 0.01em;
+        font-family: 'Inter', sans-serif;
+        background-color: #f3f4f6;
+        color: #111827;
     }
 
     .container {
-        max-width: 1100px;
-        margin: 60px auto;
-        padding: 48px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 20px;
     }
-
-        .container:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
 
     .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 28px;
+        margin-bottom: 30px;
     }
 
         .header h1 {
+            font-size: 28px;
             font-weight: 800;
-            font-size: 32px;
-            letter-spacing: -0.03em;
-            background: linear-gradient(90deg, #101010, #3b3b3b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            color: #111827;
+            margin: 0;
         }
 
-    .btn-primary {
-        background: linear-gradient(135deg, #0058ff, #4f9eff);
+    .btn-add {
+        background-color: #2563eb;
         color: white;
         border: none;
-        border-radius: 12px;
-        padding: 10px 18px;
+        padding: 10px 20px;
+        border-radius: 8px;
         font-weight: 600;
         cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0, 85, 255, 0.25);
-        transition: all 0.2s ease;
+        transition: background 0.2s;
     }
 
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 85, 255, 0.35);
-            background: linear-gradient(135deg, #2563eb, #5ea0ff);
+        .btn-add:hover {
+            background-color: #1d4ed8;
         }
+
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
 
     table {
         width: 100%;
         border-collapse: collapse;
-        background: rgba(255, 255, 255, 0.85);
-        border-radius: 12px;
-        overflow: hidden;
+        text-align: left;
     }
 
     th {
-        text-align: left;
-        padding: 14px 16px;
-        color: #333;
-        font-weight: 700;
-        font-size: 15px;
-        border-bottom: 1px solid #e5e7eb;
-        background: rgba(250, 250, 250, 0.8);
+        background-color: #f9fafb;
+        padding: 12px 24px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #6b7280;
+        letter-spacing: 0.05em;
     }
 
     td {
-        padding: 14px 16px;
-        color: #222;
-        font-size: 15px;
-        border-bottom: 1px solid #f0f2f5;
-        transition: background-color 0.2s ease;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 14px;
+        color: #374151;
     }
 
-    tr:hover td {
-        background: rgba(247, 249, 252, 0.6);
+    tr:last-child td {
+        border-bottom: none;
     }
 
-    .actions {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
+    .badge {
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 600;
     }
 
-    .icon-btn {
-        border: none;
+    .bg-blue {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .bg-green {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .bg-purple {
+        background-color: #f3e8ff;
+        color: #6b21a8;
+    }
+
+    .action-btn {
         background: none;
-        font-size: 18px;
-        opacity: 0.6;
-        transition: opacity 0.2s ease, transform 0.15s ease;
+        border: none;
         cursor: pointer;
+        padding: 4px;
+        margin-right: 8px;
+        font-size: 16px;
+        transition: transform 0.1s;
     }
 
-        .icon-btn:hover {
-            opacity: 1;
+        .action-btn:hover {
             transform: scale(1.1);
         }
 
-    .modal-overlay {
+    .modal-backdrop {
         position: fixed;
-        inset: 0;
-        background-color: rgba(255, 255, 255, 0.65);
-        backdrop-filter: blur(10px);
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        z-index: 50;
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 1000;
-        animation: fadeIn 0.25s ease-in-out;
+        animation: fadeIn 0.2s ease-out;
     }
 
-    .modal-box {
+    .modal-content {
         background: white;
-        border-radius: 18px;
-        padding: 36px;
-        width: 90%;
-        max-width: 520px;
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-        border: 1px solid rgba(230, 232, 236, 0.6);
-        animation: slideUp 0.25s ease-out;
+        width: 100%;
+        max-width: 600px;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        padding: 30px;
+        position: relative;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        font-size: 14px;
+        transition: border-color 0.15s;
+    }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+    .helper-text {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+
+    .link-btn {
+        background: none;
+        border: none;
+        color: #2563eb;
+        font-size: 13px;
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+        margin-top: 5px;
+        display: inline-block;
+    }
+
+    .error-box {
+        background-color: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .btn-secondary {
+        background: white;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .btn-save {
+        background: #2563eb;
+        border: none;
+        color: white;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+        .btn-save:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+
+    /* CLASES PARA EL ROJO AUTOMÁTICO */
+    input.invalid, select.invalid {
+        border-color: #dc2626;
+        background-color: #fef2f2;
+    }
+
+    .validation-message {
+        color: #dc2626;
+        font-size: 12px;
+        margin-top: 4px;
+        font-weight: 500;
     }
 
     @@keyframes fadeIn {
@@ -152,7 +267,7 @@
 
     @@keyframes slideUp {
         from {
-            transform: translateY(10px);
+            transform: translateY(20px);
             opacity: 0;
         }
 
@@ -161,166 +276,151 @@
             opacity: 1;
         }
     }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-    }
-
-        .modal-header h3 {
-            font-size: 22px;
-            font-weight: 700;
-            color: #0f172a;
-            margin: 0;
-        }
-
-    .close-btn {
-        border: none;
-        background: none;
-        font-size: 22px;
-        cursor: pointer;
-        color: #94a3b8;
-        transition: color 0.2s ease;
-    }
-
-        .close-btn:hover {
-            color: #1e293b;
-        }
-
-    label {
-        font-weight: 600;
-        font-size: 14px;
-        color: #374151;
-        display: block;
-        margin-top: 10px;
-    }
-
-    input {
-        width: 100%;
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        background: #f9fafb;
-        margin-top: 4px;
-        font-size: 15px;
-        color: #111827;
-        transition: all 0.2s ease;
-    }
-
-        input:focus {
-            background-color: #fff;
-            border-color: #2563eb;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-
-    .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 24px;
-    }
-
-    .btn-secondary {
-        background: #f1f5f9;
-        border-radius: 10px;
-        color: #111827;
-        border: 1px solid #e2e8f0;
-        padding: 9px 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s ease;
-    }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
 </style>
 
 <div class="container">
     <div class="header">
-        <h1>👥 Gestión de Clientes</h1>
-        <button class="btn-primary" @onclick="() => OpenForm(0)">＋ Nuevo Cliente</button>
+        <h1>👥 Clientes</h1>
+        <button class="btn-add" @onclick="() => OpenForm(0)">+ Nuevo Cliente</button>
     </div>
+
+    @if (errorMessage != null)
+    {
+        <div class="error-box">⚠️ @errorMessage</div>
+    }
 
     @if (clientes == null)
     {
-        <div style="text-align:center; padding:40px; color:#6b7280;">Cargando clientes...</div>
-    }
-    else if (errorMessage != null)
-    {
-        <div style="color:#ef4444; text-align:center; font-weight:600; padding:20px;">⚠️ @errorMessage</div>
-    }
-    else if (clientes.Count == 0)
-    {
-        <div style="text-align:center; padding:30px; color:#6b7280; font-style:italic;">No hay clientes registrados.</div>
+        <div style="text-align: center; padding: 40px; color: #6b7280;">Cargando datos...</div>
     }
     else
     {
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Identificación</th>
-                    <th>Nombre Completo</th>
-                    <th>Email</th>
-                    <th>Teléfono</th>
-                    <th style="text-align:center;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in clientes)
-                {
+        <div class="table-container">
+            <table>
+                <thead>
                     <tr>
-                        <td>@c.Id</td>
-                        <td>@c.Identificacion</td>
-                        <td>@c.NombreCompleto</td>
-                        <td>@c.Email</td>
-                        <td>@c.Telefono</td>
-                        <td>
-                            <div class="actions">
-                                <button class="icon-btn" title="Editar" @onclick="() => OpenForm(c.Id)">✏️</button>
-                                <button class="icon-btn" title="Eliminar" @onclick="() => ConfirmDelete(c.Id, c.NombreCompleto)">🗑️</button>
-                            </div>
-                        </td>
+                        <th>Identificación</th>
+                        <th>Nombre / Razón Social</th>
+                        <th>Contacto</th>
+                        <th>Ubicación</th>
+                        <th style="text-align: center;">Acciones</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @if (clientes.Count == 0)
+                    {
+                        <tr><td colspan="5" style="text-align: center; padding: 30px; color: #9ca3af;">No hay clientes registrados.</td></tr>
+                    }
+                    @foreach (var cliente in clientes)
+                    {
+                        <tr>
+                            <td>
+                                <div style="font-weight: 600; color: #111827;">@cliente.Identificacion</div>
+                                <span class="badge @GetBadgeClass(cliente.TipoIdentificacion)">@cliente.TipoIdentificacion</span>
+                            </td>
+                            <td><div style="font-weight: 500;">@cliente.NombreCompleto</div></td>
+                            <td>
+                                <div style="font-size: 13px;">📧 @cliente.Email</div>
+                                <div style="font-size: 13px;">📞 @cliente.Telefono</div>
+                            </td>
+                            <td>
+                                <div style="font-size: 13px;">@cliente.Pais</div>
+                                <div style="font-size: 12px; color: #6b7280;">@cliente.Direccion</div>
+                            </td>
+                            <td style="text-align: center;">
+                                <button class="action-btn" title="Editar" @onclick="() => OpenForm(cliente.Id)">✏️</button>
+                                <button class="action-btn" style="color: #ef4444;" title="Eliminar" @onclick="() => ConfirmDelete(cliente.Id)">🗑️</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
 </div>
 
 @if (showFormModal)
 {
-    <div class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-header">
-                <h3>@(currentCliente.Id == 0 ? "Registrar nuevo cliente" : $"Editar: {currentCliente.NombreCompleto}")</h3>
-                <button class="close-btn" @onclick="CloseForm">×</button>
+    <div class="modal-backdrop">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                <h2 style="margin:0; font-size:20px;">@(currentCliente.Id == 0 ? "Registrar Cliente" : "Editar Cliente")</h2>
+                <button @onclick="CloseForm" style="background:none; border:none; font-size:24px; cursor:pointer; color:#9ca3af;">×</button>
             </div>
 
+            @if (!string.IsNullOrEmpty(serverValidationError))
+            {
+                <div class="error-box">
+                    <span style="font-weight:bold;">Error:</span> @serverValidationError
+                </div>
+            }
+
             <EditForm Model="@currentCliente" OnValidSubmit="HandleSubmit">
-                <label>Identificación</label>
-                <InputText @bind-Value="currentCliente.Identificacion" />
+                <DataAnnotationsValidator />
 
-                <label>Nombre Completo</label>
-                <InputText @bind-Value="currentCliente.NombreCompleto" />
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Tipo Identificación</label>
+                        <InputSelect @bind-Value="currentCliente.TipoIdentificacion" class="form-control">
+                            @foreach (var tipo in Enum.GetValues(typeof(TipoIdentificacion)))
+                            {
+                                <option value="@tipo">@tipo</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-group">
+                        <label>Número</label>
 
-                <label>Dirección</label>
-                <InputText @bind-Value="currentCliente.Direccion" />
+                        <InputText @bind-Value="currentCliente.Identificacion"
+                                   class="form-control"
+                                   maxlength="@GetMaxLength(currentCliente.TipoIdentificacion)"
+                                   placeholder="Ej: 1725..."
+                                   onkeypress="@(currentCliente.TipoIdentificacion == TipoIdentificacion.Pasaporte ? "" : "return event.charCode >= 48 && event.charCode <= 57")" />
 
-                <label>Teléfono</label>
-                <InputText @bind-Value="currentCliente.Telefono" />
+                        <div class="helper-text">@GetHintText(currentCliente.TipoIdentificacion)</div>
+                        <ValidationMessage For="@(() => currentCliente.Identificacion)" />
+                    </div>
+                </div>
 
-                <label>Email</label>
-                <InputText @bind-Value="currentCliente.Email" />
+                <div style="text-align: right; margin-top: -15px; margin-bottom: 15px;">
+                    <button type="button" class="link-btn" @onclick="SetConsumidorFinal">Usar Consumidor Final</button>
+                </div>
 
-                <div class="modal-actions">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <InputText @bind-Value="currentCliente.NombreCompleto" style="text-transform:uppercase;" />
+                    <ValidationMessage For="@(() => currentCliente.NombreCompleto)" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>País</label>
+                        <InputText @bind-Value="currentCliente.Pais" />
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <InputText @bind-Value="currentCliente.Telefono"
+                                   class="form-control"
+                                   maxlength="10"
+                                   onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+                        <ValidationMessage For="@(() => currentCliente.Telefono)" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Correo Electrónico</label>
+                    <InputText @bind-Value="currentCliente.Email" placeholder="cliente@ejemplo.com" />
+                    <ValidationMessage For="@(() => currentCliente.Email)" />
+                </div>
+
+                <div class="form-group">
+                    <label>Dirección</label>
+                    <InputTextArea @bind-Value="currentCliente.Direccion" rows="2" />
+                </div>
+
+                <div class="modal-footer">
                     <button type="button" class="btn-secondary" @onclick="CloseForm">Cancelar</button>
-                    <button type="submit" class="btn-primary" disabled="@isSubmitting">
-                        @(isSubmitting ? "Procesando..." : (currentCliente.Id == 0 ? "Guardar" : "Actualizar"))
+                    <button type="submit" class="btn-save" disabled="@isSubmitting">
+                        @(isSubmitting ? "Guardando..." : "Guardar Cliente")
                     </button>
                 </div>
             </EditForm>
@@ -330,103 +430,114 @@
 
 @if (showDeleteModal)
 {
-    <div class="modal-overlay">
-        <div class="modal-box">
-            <h3 style="color:#ef4444;">Confirmar eliminación</h3>
-            <p>¿Deseas eliminar al cliente <b>@clienteToDeleteName</b>?</p>
-            <div class="modal-actions">
-                <button class="btn-secondary" @onclick="CancelDelete">Cancelar</button>
-                <button class="btn-primary" style="background:#ef4444" @onclick="HandleDelete" disabled="@isSubmitting">Eliminar</button>
+    <div class="modal-backdrop">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">🗑️</div>
+            <h3 style="margin-bottom: 8px;">¿Eliminar Cliente?</h3>
+            <p style="color: #6b7280; margin-bottom: 24px;">Esta acción no se puede deshacer.</p>
+            <div style="display: flex; justify-content: center; gap: 12px;">
+                <button class="btn-secondary" @onclick="() => showDeleteModal = false">Cancelar</button>
+                <button class="btn-save" style="background-color: #ef4444;" @onclick="HandleDelete" disabled="@isSubmitting">Confirmar</button>
             </div>
         </div>
     </div>
 }
 
 @code {
+    // ... (Tus variables igual que antes) ...
     private List<Cliente>? clientes;
     private string? errorMessage;
+    private string? serverValidationError;
     private bool showFormModal = false;
-    private UpdateCliente currentCliente = new();
-    private bool isSubmitting = false;
     private bool showDeleteModal = false;
-    private int clienteToDeleteId;
-    private string clienteToDeleteName = string.Empty;
+    private bool isSubmitting = false;
+    private UpdateCliente currentCliente = new();
+    private int deleteId;
 
     protected override async Task OnInitializedAsync() => await LoadClientes();
 
+    // ... (Método LoadClientes igual que antes) ...
     private async Task LoadClientes()
-    {
-        clientes = null;
-        errorMessage = null;
-        try
-        {
-            clientes = await Http.GetFromJsonAsync<List<Cliente>>("api/clientes");
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error al cargar clientes: {ex.Message}";
-        }
+    { /* ... tu código ... */
+        try { clientes = await Http.GetFromJsonAsync<List<Cliente>>("api/clientes"); errorMessage = null; }
+        catch (Exception ex) { errorMessage = $"Error técnico: {ex.Message}"; }
     }
 
+    // ... (Método OpenForm igual que antes) ...
     private async Task OpenForm(int id)
     {
+        serverValidationError = null;
         if (id == 0)
-            currentCliente = new();
+        {
+            currentCliente = new UpdateCliente { Id = 0, TipoIdentificacion = TipoIdentificacion.Cedula, Pais = "Ecuador" };
+        }
         else
         {
             try
             {
-                var cliente = await Http.GetFromJsonAsync<Cliente>($"api/clientes/{id}");
-                if (cliente != null)
-                    currentCliente = new UpdateCliente
-                    {
-                        Id = cliente.Id,
-                        Identificacion = cliente.Identificacion,
-                        NombreCompleto = cliente.NombreCompleto,
-                        Direccion = cliente.Direccion,
-                        Telefono = cliente.Telefono,
-                        Email = cliente.Email
-                    };
+                var c = await Http.GetFromJsonAsync<Cliente>($"api/clientes/{id}");
+                if (c != null) currentCliente = new UpdateCliente { Id = c.Id, TipoIdentificacion = c.TipoIdentificacion, Identificacion = c.Identificacion, NombreCompleto = c.NombreCompleto, Direccion = c.Direccion, Telefono = c.Telefono, Email = c.Email, Pais = c.Pais };
             }
-            catch (Exception ex)
-            {
-                errorMessage = $"Error al cargar cliente: {ex.Message}";
-                return;
-            }
+            catch { errorMessage = "Error cargando cliente."; return; }
         }
         showFormModal = true;
-        StateHasChanged();
     }
 
-    private void CloseForm()
+    private void SetConsumidorFinal()
     {
-        showFormModal = false;
-        currentCliente = new();
-        StateHasChanged();
+        currentCliente.TipoIdentificacion = TipoIdentificacion.Ruc;
+        currentCliente.Identificacion = "9999999999999";
+        currentCliente.NombreCompleto = "CONSUMIDOR FINAL";
+        currentCliente.Direccion = "S/D";
+        currentCliente.Telefono = "9999999999";
+        currentCliente.Email = "facturacion@consumidor.final";
+        currentCliente.Pais = "Ecuador";
     }
 
     private async Task HandleSubmit()
     {
         isSubmitting = true;
+        serverValidationError = null;
+
         try
         {
             HttpResponseMessage response;
+
             if (currentCliente.Id == 0)
-                response = await Http.PostAsJsonAsync("api/clientes", currentCliente);
+            {
+                // ... (tu lógica de crear DTO igual que antes) ...
+                var createDto = new CreateCliente
+                {
+                    TipoIdentificacion = currentCliente.TipoIdentificacion,
+                    Identificacion = currentCliente.Identificacion,
+                    NombreCompleto = currentCliente.NombreCompleto,
+                    Direccion = currentCliente.Direccion,
+                    Telefono = currentCliente.Telefono,
+                    Email = currentCliente.Email,
+                    Pais = currentCliente.Pais
+                };
+                response = await Http.PostAsJsonAsync("api/clientes", createDto);
+            }
             else
+            {
                 response = await Http.PutAsJsonAsync($"api/clientes/{currentCliente.Id}", currentCliente);
+            }
 
             if (response.IsSuccessStatusCode)
             {
-                CloseForm();
+                showFormModal = false;
                 await LoadClientes();
             }
             else
-                errorMessage = $"Error: {response.ReasonPhrase}";
+            {
+                // --- AQUÍ ESTÁ LA SOLUCIÓN AL MENSAJE GIGANTE ---
+                var errorBody = await response.Content.ReadAsStringAsync();
+                serverValidationError = ExtraerMensajeError(errorBody);
+            }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error en la solicitud: {ex.Message}";
+            serverValidationError = "Error de comunicación con el servidor.";
         }
         finally
         {
@@ -434,40 +545,71 @@
         }
     }
 
-    private void ConfirmDelete(int id, string name)
+    // Función auxiliar para limpiar el JSON
+    private string ExtraerMensajeError(string jsonResponse)
     {
-        clienteToDeleteId = id;
-        clienteToDeleteName = name;
-        showDeleteModal = true;
-        StateHasChanged();
-    }
-
-    private void CancelDelete()
-    {
-        showDeleteModal = false;
-        StateHasChanged();
-    }
-
-    private async Task HandleDelete()
-    {
-        isSubmitting = true;
         try
         {
-            var response = await Http.DeleteAsync($"api/clientes/{clienteToDeleteId}");
-            if (response.IsSuccessStatusCode)
-                await LoadClientes();
-            else
-                errorMessage = "Error al eliminar cliente.";
+            // 1. Si es un mensaje simple (no es JSON), retornarlo directo
+            if (!jsonResponse.Trim().StartsWith("{"))
+                return jsonResponse.Trim('"');
+
+            // 2. Si es el JSON de validación automática de .NET
+            using var doc = System.Text.Json.JsonDocument.Parse(jsonResponse);
+            var root = doc.RootElement;
+
+            // Caso A: Error de validación de campos (ej: Telefono incorrecto)
+            if (root.TryGetProperty("errors", out var errors))
+            {
+                // Toma el primer error que encuentre
+                foreach (var prop in errors.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        return prop.Value[0].GetString() ?? "Datos inválidos.";
+                    }
+                }
+            }
+
+            // Caso B: Error manual lanzado por nosotros (ej: "RUC Inválido")
+            if (root.TryGetProperty("message", out var message))
+            {
+                return message.GetString() ?? "Error en la solicitud.";
+            }
+
+            // Caso C: Otros formatos
+            return "Verifique los datos ingresados.";
         }
-        catch (Exception ex)
+        catch
         {
-            errorMessage = $"Error: {ex.Message}";
+            // Si falla el parseo, devolvemos el texto original limpio
+            return jsonResponse;
         }
-        finally
+    }
+
+    private void ConfirmDelete(int id) { deleteId = id; showDeleteModal = true; }
+    private async Task HandleDelete()
+    { /* ... tu código delete ... */
+        // (Implementación igual a la que tenías)
+        isSubmitting = true;
+        try { var res = await Http.DeleteAsync($"api/clientes/{deleteId}"); if (res.IsSuccessStatusCode) { showDeleteModal = false; await LoadClientes(); } else errorMessage = "No se pudo eliminar"; } catch { errorMessage = "Error conexion"; }
+        isSubmitting = false;
+    }
+    private void CloseForm() => showFormModal = false;
+
+    // --- FUNCIONES VISUALES ---
+    private string GetBadgeClass(TipoIdentificacion tipo) => tipo switch { TipoIdentificacion.Ruc => "bg-blue", TipoIdentificacion.Cedula => "bg-green", TipoIdentificacion.Pasaporte => "bg-purple", _ => "" };
+    private string GetHintText(TipoIdentificacion tipo) => tipo switch { TipoIdentificacion.Ruc => "Se requieren 13 dígitos", TipoIdentificacion.Cedula => "Se requieren 10 dígitos", TipoIdentificacion.Pasaporte => "Alfanumérico (3-20 caracteres)", _ => "" };
+
+    // --- NUEVO: Lógica para el MAXLENGTH ---
+    private int GetMaxLength(TipoIdentificacion tipo)
+    {
+        return tipo switch
         {
-            isSubmitting = false;
-            showDeleteModal = false;
-            StateHasChanged();
-        }
+            TipoIdentificacion.Cedula => 10,
+            TipoIdentificacion.Ruc => 13,
+            TipoIdentificacion.Pasaporte => 20,
+            _ => 20
+        };
     }
 }
