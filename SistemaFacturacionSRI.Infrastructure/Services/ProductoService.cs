@@ -162,5 +162,18 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> UpdatePrecioProductoAsync(int id, decimal nuevoPrecio)
+        {
+            var producto = await _context.Productos.FindAsync(id);
+            if (producto == null) return false;
+
+            producto.PrecioUnitario = nuevoPrecio;
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
+
     }
 }

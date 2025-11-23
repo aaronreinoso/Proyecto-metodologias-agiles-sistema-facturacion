@@ -10,5 +10,10 @@ namespace SistemaFacturacionSRI.Application.Interfaces
         Task<Producto?> GetProductoByIdAsync(int id);
         Task<bool> UpdateProductoAsync(UpdateProducto producto);
         Task<bool> DeleteProductoAsync(int id);
+
+
+        Task<bool> UpdatePrecioProductoAsync(int id, decimal nuevoPrecio);
+
+
     }
 }

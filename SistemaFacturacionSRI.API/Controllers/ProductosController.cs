@@ -99,5 +99,32 @@ namespace SistemaFacturacionSRI.API.Controllers
 
             return NoContent();
         }
+
+        
+
+
+        [HttpPatch("{id}/precio")]
+        public async Task<IActionResult> ActualizarPrecio(int id, UpdatePrecioProducto dto)
+        {
+            if (dto.PrecioUnitario <= 0)
+                return BadRequest("El precio debe ser mayor que cero.");
+
+            try
+            {
+                var actualizado = await _productoService.UpdatePrecioProductoAsync(id, dto.PrecioUnitario);
+
+                if (!actualizado)
+                    return NotFound();
+
+                return Ok(new { message = "Precio actualizado correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error al actualizar precio: " + ex.Message });
+            }
+        }
+
+
+
     }
 }

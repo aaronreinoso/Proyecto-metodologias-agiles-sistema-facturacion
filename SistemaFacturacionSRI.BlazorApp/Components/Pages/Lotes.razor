@@ -88,7 +88,18 @@
                     </div>
 
                     <div class="col-md-6 text-end">
-                        <h4 class="mb-1">PVP: $@productoActual.PrecioUnitario.ToString("0.00")</h4>
+                        <div class="col-md-6 text-end">
+                            <label><strong>PVP (Precio Unitario)</strong></label>
+                            <InputNumber TValue="decimal"
+                                         @bind-Value="productoActual.PrecioUnitario"
+                                         class="form-control text-end" />
+                            <button class="btn btn-primary" @onclick="GuardarPrecio">
+                                💾 Guardar Precio
+                            </button>
+
+                                     
+                                     </div>
+
                         <h5 class="mb-0">
                             Stock Total:
                             <span class="badge @(productoActual.Stock > 0 ? "bg-success" : "bg-danger")">
@@ -226,6 +237,31 @@
     {
         await LoadData();
     }
+
+    private async Task GuardarPrecio()
+    {
+        try
+        {
+            var dto = new { PrecioUnitario = productoActual.PrecioUnitario };
+
+            var response = await Http.PatchAsJsonAsync($"api/productos/{Id}/precio", dto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                MostrarMensaje("Precio actualizado correctamente.", "alert-success");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                MostrarMensaje("Error: " + error, "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje("Error al actualizar precio: " + ex.Message, "alert-danger");
+        }
+    }
+
 
     private async Task LoadData()
     {
