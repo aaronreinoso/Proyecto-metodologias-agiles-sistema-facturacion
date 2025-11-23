@@ -1,0 +1,330 @@
+﻿@page "/productos/lotes/{id:int}"
+@using SistemaFacturacionSRI.Domain.DTOs.LotesProducto
+@using SistemaFacturacionSRI.Domain.Entities
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<PageTitle>Detalle de Producto y Lotes</PageTitle>
+
+<style>
+    .container {
+        max-width: 1100px;
+        margin: 60px auto;
+        padding: 48px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    .header h1 {
+        font-weight: 800;
+        font-size: 32px;
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        border-radius: 10px;
+        color: #111827;
+        border: 1px solid #e2e8f0;
+        padding: 9px 16px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .table-responsive {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-box {
+        background: white;
+        border-radius: 18px;
+        padding: 36px;
+        width: 90%;
+        max-width: 550px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    }
+</style>
+
+<div class="container">
+    <div class="header d-flex justify-content-between align-items-center">
+        <h1>📦 Detalle de Inventario: @productoActual?.Descripcion</h1>
+        <button class="btn-secondary" @onclick="GoBack">← Volver a Productos</button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="alert alert-info">Cargando datos...</div>
+    }
+    else if (productoActual == null)
+    {
+        <div class="alert alert-danger">Producto no encontrado.</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(requestMessage))
+        {
+            <div class="alert @requestClase">@requestMessage</div>
+        }
+
+        <!-- PRODUCTO -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Código Principal:</strong> @productoActual.CodigoPrincipal <br />
+                        <strong>IVA:</strong> @productoActual.TarifaIva <br />
+                    </div>
+
+                    <div class="col-md-6 text-end">
+                        <h4 class="mb-1">PVP: $@productoActual.PrecioUnitario.ToString("0.00")</h4>
+                        <h5 class="mb-0">
+                            Stock Total:
+                            <span class="badge @(productoActual.Stock > 0 ? "bg-success" : "bg-danger")">
+                                @productoActual.Stock
+                            </span>
+                        </h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOTES -->
+        <h5 class="mt-4">📦 Lotes de Stock</h5>
+
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+            <p class="text-muted">Los lotes se consumen por FEFO/FIFO según parámetros.</p>
+            <button class="btn btn-primary" @onclick="OpenLoteModal">+ Agregar Stock (Lote)</button>
+        </div>
+
+        @if (lotes == null || !lotes.Any())
+        {
+            <div class="alert alert-warning">No hay lotes registrados.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Cant. Actual</th>
+                            <th>P. Compra Unitario</th>
+                            <th>Costo Total</th>
+                            <th>Fecha Ingreso</th>
+                            @if (productoActual.EsPerecible)
+                            {
+                                <th>Caducidad</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lote in lotes)
+                        {
+                            <tr>
+                                <td>@lote.Id</td>
+                                <td>@lote.CantidadActual</td>
+                                <td>$@lote.PrecioCompraUnitario.ToString("0.00000")</td>
+                                <td>$@lote.CostoTotalLote.ToString("0.00")</td>
+                                <td>@lote.FechaRegistro.ToShortDateString()</td>
+                                @if (productoActual.EsPerecible)
+                                {
+                                    <td>@(lote.FechaCaducidad?.ToShortDateString() ?? "N/A")</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+<!-- MODAL -->
+@if (showLoteModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-box">
+
+            <h3 class="mb-3">+ Registrar Nuevo Lote</h3>
+
+            <EditForm Model="@newLoteDto" OnValidSubmit="HandleLoteSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Cantidad *</label>
+                        <InputNumber @bind-Value="newLoteDto.Cantidad" class="form-control" @oninput="UpdateCostos" />
+                        <ValidationMessage For="@(() => newLoteDto.Cantidad)" />
+                    </div>
+
+                    <div class="col-md-8 mb-3">
+                        <label>Costo Total Lote *</label>
+                        <InputNumber TValue="decimal" @bind-Value="costoTotalLote" class="form-control" @oninput="UpdateCostos" />
+                        <ValidationMessage For="@(() => newLoteDto.CostoTotalLote)" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Precio Compra Unitario (Calculado)</label>
+                        <input disabled class="form-control"
+                               value="@(newLoteDto.PrecioCompraUnitario?.ToString("0.00000") ?? "0.00000")" />
+                        <ValidationMessage For="@(() => newLoteDto.PrecioCompraUnitario)" />
+                    </div>
+
+                    @if (productoActual?.EsPerecible == true)
+                    {
+                        <div class="col-md-6 mb-3">
+                            <label>Fecha de Caducidad *</label>
+                            <InputDate @bind-Value="newLoteDto.FechaCaducidad" class="form-control" />
+                            <ValidationMessage For="@(() => newLoteDto.FechaCaducidad)" />
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" @onclick="CloseLoteModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" disabled="@isSubmittingLote">
+                        @(isSubmittingLote ? "Guardando..." : "Guardar Lote")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Producto? productoActual;
+    private List<LoteProducto>? lotes;
+    private bool isLoading = true;
+
+    // Modal
+    private bool showLoteModal = false;
+    private CreateLoteProducto newLoteDto = new();
+    private decimal costoTotalLote = 0;
+    private bool isSubmittingLote = false;
+
+    // Mensajes
+    private string requestMessage = "";
+    private string requestClase = "alert-info";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+
+        try
+        {
+            productoActual = await Http.GetFromJsonAsync<Producto>($"api/productos/{Id}");
+            lotes = await Http.GetFromJsonAsync<List<LoteProducto>>($"api/lotes/producto/{Id}");
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error al cargar datos: {ex.Message}", "alert-danger");
+        }
+
+        isLoading = false;
+    }
+
+    private void GoBack() => NavManager.NavigateTo("/productos");
+
+    private void MostrarMensaje(string msg, string clase)
+    {
+        requestMessage = msg;
+        requestClase = clase;
+        StateHasChanged();
+    }
+
+    // --- MODAL LOGIC ---
+
+    private void OpenLoteModal()
+    {
+        newLoteDto = new CreateLoteProducto
+        {
+            ProductoId = Id,
+            Cantidad = 1,
+            CostoTotalLote = 0.01m,
+            PrecioCompraUnitario = 0.00001m
+        };
+
+        costoTotalLote = 0.01m;
+        showLoteModal = true;
+        requestMessage = "";
+    }
+
+    private void CloseLoteModal()
+    {
+        showLoteModal = false;
+    }
+
+    private void UpdateCostos()
+    {
+        if (newLoteDto.Cantidad > 0 && costoTotalLote > 0)
+        {
+            newLoteDto.PrecioCompraUnitario =
+                Math.Round(costoTotalLote / newLoteDto.Cantidad, 5);
+        }
+        else
+        {
+            newLoteDto.PrecioCompraUnitario = 0.00001m;
+        }
+
+        newLoteDto.CostoTotalLote = costoTotalLote;
+    }
+
+    private async Task HandleLoteSubmit()
+    {
+        UpdateCostos();
+
+        if (productoActual?.EsPerecible == true && newLoteDto.FechaCaducidad == null)
+        {
+            MostrarMensaje("⚠ Debe ingresar la fecha de caducidad.", "alert-danger");
+            return;
+        }
+
+        isSubmittingLote = true;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/lotes", newLoteDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                MostrarMensaje("✅ Lote registrado correctamente.", "alert-success");
+                CloseLoteModal();
+                await LoadData();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                MostrarMensaje($"❌ Error: {error}", "alert-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarMensaje($"Error al registrar lote: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isSubmittingLote = false;
+        }
+    }
+}

@@ -1,33 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace SistemaFacturacionSRI.Domain.Reglas
 {
-    // Clase que contiene las reglas de negocio fijas para el Wizard de Creación.
+    // Esta clase simula las reglas de negocio del Wizard (UX)
     public static class ReglasProducto
     {
-        // IDs de las TarifaIva: 1=0%, 3=15%, 4=5% (Basado en el seed de AppDbContext)
-        // La Tarifa 12% (ID 2) y 8% (ID 5) están disponibles en la BD pero no se usan en este Wizard simplificado.
-
+        // IDs de TarifaIva (Deben coincidir con el Seed Data de AppDbContext)
         public const int IVA_0_ID = 1;
         public const int IVA_5_ID = 4;
         public const int IVA_15_ID = 3;
 
-        // Estructura para definir la lógica del Wizard
         public class CategoriaSimulada
         {
             public int Id { get; set; }
             public string Nombre { get; set; } = string.Empty;
-            public string TipoAgrupacion { get; set; } = string.Empty;
+            public string TipoAgrupacion { get; set; } = string.Empty; // Ayuda a la lógica
             public int TarifaIvaIdPorDefecto { get; set; }
             public bool EsPereciblePorDefecto { get; set; }
-            public bool PermiteCambioIVA { get; set; }
-            public bool PermiteCambioPerecible { get; set; }
+            public bool PermiteCambioIVA { get; set; } // ¿Permite al usuario cambiar el IVA?
+            public string DescripcionRegla { get; set; } = string.Empty; // Para notas en la UI
         }
 
         public static List<CategoriaSimulada> CategoriasBase = new List<CategoriaSimulada>
@@ -39,18 +30,18 @@ namespace SistemaFacturacionSRI.Domain.Reglas
                 TipoAgrupacion = "Canasta",
                 TarifaIvaIdPorDefecto = IVA_0_ID,
                 EsPereciblePorDefecto = true,
-                PermiteCambioIVA = false, // Bloqueado a 0%
-                PermiteCambioPerecible = true // Puede ser Con Caducidad (Leche) o Sin (Libros)
+                PermiteCambioIVA = false,
+                DescripcionRegla = "Bloqueado a 0%. Permite elegir Caducidad (Leche) o No (Libros)."
             },
             new CategoriaSimulada
             {
                 Id = 2,
-                Nombre = "II. Construcción (Materiales Generales 15%)",
+                Nombre = "II. Construcción (Materiales al 5%)",
                 TipoAgrupacion = "Construccion",
-                TarifaIvaIdPorDefecto = IVA_15_ID,
+                TarifaIvaIdPorDefecto = IVA_5_ID,
                 EsPereciblePorDefecto = false,
-                PermiteCambioIVA = false, // Lo dejamos en 15% por simplicidad
-                PermiteCambioPerecible = false
+                PermiteCambioIVA = false,
+                DescripcionRegla = "Bloqueado a 5%. Fijo como No Perecible."
             },
             new CategoriaSimulada
             {
@@ -59,12 +50,11 @@ namespace SistemaFacturacionSRI.Domain.Reglas
                 TipoAgrupacion = "General",
                 TarifaIvaIdPorDefecto = IVA_15_ID,
                 EsPereciblePorDefecto = false,
-                PermiteCambioIVA = true, // Permite 0% o 15%
-                PermiteCambioPerecible = true
+                PermiteCambioIVA = true,
+                DescripcionRegla = "IVA 15% por defecto. Permite elegir Caducidad o No."
             }
         };
 
-        // Función auxiliar para buscar tarifas
         public static CategoriaSimulada? GetReglaById(int id)
         {
             return CategoriasBase.Find(c => c.Id == id);

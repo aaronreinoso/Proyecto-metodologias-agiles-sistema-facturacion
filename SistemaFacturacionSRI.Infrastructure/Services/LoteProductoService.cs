@@ -35,13 +35,9 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             decimal costoTotalCalculado;
 
             bool isTotalInput = loteDto.CostoTotalLote.HasValue;
-            bool isUnitarioInput = loteDto.PrecioUnitarioInput.HasValue;
+            bool isUnitarioInput = loteDto.PrecioCompraUnitario.HasValue;
 
-            if (isTotalInput && isUnitarioInput)
-            {
-                throw new InvalidOperationException("Solo puede ingresar el costo total del lote O el costo unitario, no ambos.");
-            }
-            else if (isTotalInput)
+            if (isTotalInput)
             {
                 if (loteDto.Cantidad <= 0)
                     throw new InvalidOperationException("La cantidad debe ser mayor a cero para calcular el costo unitario.");
@@ -53,7 +49,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             else if (isUnitarioInput)
             {
                 // Usamos el PrecioUnitarioInput para calcular el total
-                costoUnitarioCalculado = loteDto.PrecioUnitarioInput!.Value;
+                costoUnitarioCalculado = loteDto.PrecioCompraUnitario!.Value;
                 costoTotalCalculado = costoUnitarioCalculado * loteDto.Cantidad;
             }
             else

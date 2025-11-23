@@ -1,99 +1,353 @@
 ﻿@page "/productos"
+@using SistemaFacturacionSRI.Domain.DTOs.Productos
+@using SistemaFacturacionSRI.Domain.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Linq
+@inject HttpClient Http
 @inject NavigationManager NavManager
-@inject IProductoService ProductoService
-@inject ISnackbar Snackbar // Asumiendo que utiliza un componente de Snackbar para notificaciones
 
-<h3>Gestión de Productos 📦</h3>
-<p>Listado general de ítems disponibles para venta.</p>
+<PageTitle>Gestión de Productos</PageTitle>
 
-<div class="d-flex justify-content-between mb-3">
-    <input type="text" class="form-control w-25" placeholder="Buscar por Código, Nombre, Marca o Presentación..." @oninput="FiltrarProductos" />
-    <button class="btn btn-primary" @onclick="GoToCreateWizard">
-        <i class="oi oi-plus"></i> Nuevo Producto
-    </button>
+<style>
+    /* Asegurando estilos clave */
+    .container {
+        max-width: 1100px;
+        margin: 60px auto;
+        padding: 48px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 85, 255, 0.25);
+        transition: all 0.2s ease;
+    }
+
+    .table-container {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    th {
+        text-align: left;
+        padding: 14px 16px;
+        color: #333;
+        font-weight: 700;
+        font-size: 15px;
+        border-bottom: 1px solid #e5e7eb;
+        background: rgba(250, 250, 250, 0.8);
+    }
+
+    td {
+        padding: 14px 16px;
+        color: #222;
+        font-size: 15px;
+        border-bottom: 1px solid #f0f2f5;
+        transition: background-color 0.2s ease;
+    }
+
+    tr:hover td {
+        background: rgba(247, 249, 252, 0.6);
+    }
+
+    .actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .icon-btn {
+        border: none;
+        background: none;
+        font-size: 18px;
+        opacity: 0.6;
+        transition: opacity 0.2s ease, transform 0.15s ease;
+        cursor: pointer;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-box {
+        background: white;
+        border-radius: 18px;
+        padding: 36px;
+        width: 90%;
+        max-width: 480px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        border-radius: 10px;
+        color: #111827;
+        border: 1px solid #e2e8f0;
+        padding: 9px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+    /* Nuevo estilo para filas clicables */
+    .table-row-link:hover {
+        background-color: #f0f8ff !important;
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <h1>📦 Gestión de Productos</h1>
+        <AuthorizeView Roles="Administrador">
+            <Authorized>
+                @* El botón ahora navega a la página de creación (Wizard) *@
+                <button class="btn-primary" @onclick="@(() => NavManager.NavigateTo("/productos/crear"))">＋ Nuevo Producto</button>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <div class="mb-4">
+        <input type="text" class="form-control" placeholder="🔍 Buscar por código, nombre, marca o presentación..."
+               @bind="terminoBusqueda" @bind:event="oninput" />
+    </div>
+
+    @if (productos == null)
+    {
+        <div style="text-align:center; padding:40px; color:#6b7280;">Cargando productos...</div>
+    }
+    else if (errorMessage != null)
+    {
+        <div style="color:#ef4444; text-align:center; font-weight:600; padding:20px;">⚠️ @errorMessage</div>
+    }
+    else if (!productosFiltrados.Any())
+    {
+        <div style="text-align:center; padding:30px; color:#6b7280; font-style:italic;">No hay productos que coincidan con la búsqueda.</div>
+    }
+    else
+    {
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre / Marca / Presentación</th>
+                        <th>PVP</th>
+                        <th>IVA</th>
+                        <th>Stock Actual</th>
+                        <th>Perecible</th>
+                        <AuthorizeView Roles="Administrador">
+                            <Authorized>
+                                <th style="text-align:center;">Lotes / Acciones</th>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in productosFiltrados)
+                    {
+                        @* Clic en la fila navega al detalle de Lotes *@
+                        <tr class="table-row-link" @onclick="@(() => NavManager.NavigateTo($"/productos/lotes/{p.Id}"))">
+                            <td>@p.CodigoPrincipal</td>
+                            <td>
+                                <strong>@p.NombreGenerico</strong><br />
+                                <small class="text-muted">@p.Marca | @p.Presentacion</small>
+                            </td>
+                            <td>$@p.PrecioUnitario.ToString("0.00")</td>
+                            <td>
+                                @p.TarifaIva?.Porcentaje.ToString("0")%
+                            </td>
+                            <td>
+                                <span class="badge @(p.Stock > 0 ? "bg-success" : "bg-danger")">
+                                    @p.Stock.ToString("0")
+                                </span>
+                            </td>
+                            <td>
+                                @if (p.EsPerecible)
+                                {
+                                    <span class="badge bg-warning text-dark">⏳ Sí</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">No</span>
+                                }
+                            </td>
+                            <AuthorizeView Roles="Administrador">
+                                <Authorized>
+                                    <td style="text-align:center;">
+                                        <div class="actions">
+                                            @* Botón para ver lotes (se mantiene aquí si el clic en la fila se bloquea) *@
+                                            <button class="icon-btn" title="Ver Lotes / Editar" @onclick:stopPropagation="true" @onclick="@(() => NavManager.NavigateTo($"/productos/lotes/{p.Id}"))">👁️‍🗨️</button>
+                                            <button class="icon-btn" title="Eliminar" style="color:#ef4444;" @onclick:stopPropagation="true" @onclick="@(() => ConfirmDelete(p.Id, p.Descripcion))">🗑️</button>
+                                        </div>
+                                    </td>
+                                </Authorized>
+                            </AuthorizeView>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
-@if (productos == null)
+@if (showDeleteModal)
 {
-    <p><em>Cargando productos...</em></p>
-}
-else
-{
-    <table class="table table-hover">
-        <thead>
-            <tr>
-                <th>Código Principal</th>
-                <th>Descripción Completa</th>
-                <th>IVA</th>
-                <th>Stock</th>
-                <th>PVP</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var p in ProductosFiltrados)
+    <div class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="color:#ef4444;">Confirmar eliminación</h3>
+            <p>¿Deseas eliminar el producto <b>@productoToDeleteName</b>?</p>
+            @if (!string.IsNullOrEmpty(deleteError))
             {
-                <tr @onclick="() => GoToDetail(p.Id)" style="cursor:pointer">
-                    <td>@p.CodigoPrincipal</td>
-                    <td>@p.Descripcion</td>
-                    <td>@p.TarifaIva?.Porcentaje%</td>
-                    <td>@p.Stock</td>
-                    <td>@p.PrecioUnitario.ToString("C2")</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-info" @onclick:stopPropagation @onclick="() => GoToDetail(p.Id)">
-                            <i class="oi oi-magnifying-glass"></i> Ver Lotes
-                        </button>
-                    </td>
-                </tr>
+                <div class="alert alert-danger mt-3">@deleteError</div>
             }
-        </tbody>
-    </table>
+            <div class="modal-actions">
+                <button class="btn-secondary" @onclick="CancelDelete">Cancelar</button>
+                <button class="btn-primary" style="background:#ef4444" @onclick="HandleDelete" disabled="@isSubmitting">Eliminar</button>
+            </div>
+        </div>
+    </div>
 }
-
 
 @code {
     private List<Producto>? productos;
-    private List<Producto>? ProductosFiltrados { get; set; }
+    private string? errorMessage;
+    private string? deleteError;
+    private bool isSubmitting = false;
+    private bool showDeleteModal = false;
+    private int productoToDeleteId;
+    private string productoToDeleteName = string.Empty;
+    private string terminoBusqueda = string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    // Lógica de filtrado (Busca en los nuevos campos de unicidad)
+    private IEnumerable<Producto> productosFiltrados =>
+        productos?.Where(p =>
+            string.IsNullOrEmpty(terminoBusqueda) ||
+            p.CodigoPrincipal.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
+            p.NombreGenerico.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
+            p.Marca.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase) ||
+            p.Presentacion.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+        ).ToList() ?? new List<Producto>();
+
+
+    protected override async Task OnInitializedAsync() => await LoadProductos();
+
+    private async Task LoadProductos()
     {
+        productos = null;
+        errorMessage = null;
         try
         {
-            productos = await ProductoService.GetAllProductosAsync();
-            ProductosFiltrados = productos;
+            // La llamada al API debe incluir las tarifas de IVA (via Include en el backend)
+            // Nota: Se asume que el API devuelve la relación TarifaIva
+            productos = await Http.GetFromJsonAsync<List<Producto>>("api/productos");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al cargar: {ex.Message}", Severity.Error);
+            errorMessage = $"Error al cargar productos: {ex.Message}";
         }
     }
 
-    private void FiltrarProductos(ChangeEventArgs e)
+    private void ConfirmDelete(int id, string name)
     {
-        string filtro = e.Value?.ToString()?.ToLower() ?? "";
-        if (string.IsNullOrWhiteSpace(filtro))
+        productoToDeleteId = id;
+        productoToDeleteName = name;
+        deleteError = null;
+        showDeleteModal = true;
+        StateHasChanged();
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        deleteError = null;
+        StateHasChanged();
+    }
+
+    private async Task HandleDelete()
+    {
+        isSubmitting = true;
+        deleteError = null;
+        try
         {
-            ProductosFiltrados = productos;
+            var response = await Http.DeleteAsync($"api/productos/{productoToDeleteId}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadProductos();
+                showDeleteModal = false;
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                // Si la eliminación falla por FK (producto ya facturado), muestra el error
+                deleteError = ExtraerMensajeError(errorBody);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            ProductosFiltrados = productos!
-                .Where(p =>
-                    p.CodigoPrincipal.ToLower().Contains(filtro) ||
-                    p.NombreGenerico.ToLower().Contains(filtro) ||
-                    p.Marca.ToLower().Contains(filtro) ||
-                    p.Presentacion.ToLower().Contains(filtro))
-                .ToList();
+            deleteError = $"Error de comunicación: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
         }
     }
 
-    private void GoToCreateWizard()
+    // Función auxiliar para extraer mensajes de error (para el modal de eliminación)
+    private string ExtraerMensajeError(string jsonResponse)
     {
-        NavManager.NavigateTo("/productos/crear");
-    }
+        try
+        {
+            if (!jsonResponse.Trim().StartsWith("{"))
+                return jsonResponse.Trim('"');
 
-    private void GoToDetail(int id)
-    {
-        NavManager.NavigateTo($"/productos/detalle/{id}");
+            using var doc = System.Text.Json.JsonDocument.Parse(jsonResponse);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("message", out var message))
+            {
+                return message.GetString() ?? "Error en la solicitud.";
+            }
+
+            return "Verifique los datos ingresados.";
+        }
+        catch
+        {
+            return jsonResponse;
+        }
     }
 }

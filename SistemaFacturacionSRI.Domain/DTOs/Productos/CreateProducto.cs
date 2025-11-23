@@ -15,11 +15,11 @@ namespace SistemaFacturacionSRI.Domain.DTOs.Productos
 
         [Required(ErrorMessage = "La marca es obligatoria.")]
         [MaxLength(100)]
-        public string Marca { get; set; } = string.Empty;
+        public string Marca { get; set; }
 
         [Required(ErrorMessage = "La presentación es obligatoria.")]
         [MaxLength(100)]
-        public string Presentacion { get; set; } = string.Empty;
+        public string Presentacion { get; set; }
 
         // FK a la tabla de tarifas IVA (Simple)
         [Required(ErrorMessage = "Debe seleccionar la Tarifa de IVA.")]

@@ -12,8 +12,8 @@ using SistemaFacturacionSRI.Infrastructure.Persistence;
 namespace SistemaFacturacionSRI.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251123053341_EstructuraFinalInventario")]
-    partial class EstructuraFinalInventario
+    [Migration("20251123133643_EsquemaFinalOK")]
+    partial class EsquemaFinalOK
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
