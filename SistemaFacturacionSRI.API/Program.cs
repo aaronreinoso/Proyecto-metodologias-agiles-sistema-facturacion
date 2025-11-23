@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Infrastructure.Persistence; // La ubicación de tu AppDbContext
 using SistemaFacturacionSRI.Infrastructure.Services; // para ProductoService y ClienteService
+using SistemaFacturacionSRI.Infrastructure.SRI.Services;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,6 +50,8 @@ builder.Services.AddControllers().AddJsonOptions(x =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+
+builder.Services.AddScoped<FacturaElectronicaService>();
 
 var app = builder.Build();
 
