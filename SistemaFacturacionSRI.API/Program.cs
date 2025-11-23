@@ -35,6 +35,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<ILoteProductoService, LoteProductoService>();
+builder.Services.AddScoped<IFacturaService, FacturaService>();
 
 
 // Add services to the container.
