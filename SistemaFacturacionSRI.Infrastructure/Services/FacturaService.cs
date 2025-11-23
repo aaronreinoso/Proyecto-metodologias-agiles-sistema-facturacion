@@ -44,7 +44,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     if (producto == null) throw new Exception($"Producto ID {item.ProductoId} no existe.");
 
                     if (producto.Stock < item.Cantidad)
-                        throw new Exception($"Stock insuficiente para el producto: {producto.Nombre}");
+                        throw new Exception($"Stock insuficiente para el producto: {producto.Descripcion}");
 
                     // --- LÓGICA FIFO (First-In, First-Out) PARA LOTES ---
                     // Obtenemos los lotes con stock, ordenados por fecha de caducidad (los más viejos primero)
@@ -57,6 +57,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                     foreach (var lote in lotesDisponibles)
                     {
+                        Console.WriteLine(lote.CantidadActual);
                         if (cantidadPorDescontar == 0) break;
 
                         int aTomar = Math.Min(cantidadPorDescontar, lote.CantidadActual);
@@ -72,7 +73,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     if (cantidadPorDescontar > 0)
                     {
                         // Esto no debería pasar si validamos producto.Stock < item.Cantidad, pero es una doble seguridad
-                        throw new Exception($"Inconsistencia en lotes para el producto {producto.Nombre}. Falta stock físico.");
+                        throw new Exception($"Inconsistencia en lotes para el producto {producto.Descripcion}. Falta stock físico.");
                     }
 
                     // 3. Actualizar Stock Global del Producto
@@ -100,11 +101,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 nuevaFactura.Subtotal = subtotalFactura;
                 nuevaFactura.TotalIVA = totalIvaFactura;
                 nuevaFactura.Total = subtotalFactura + totalIvaFactura;
-
+               
                 // 7. Guardar en Base de Datos
                 _context.Facturas.Add(nuevaFactura);
                 await _context.SaveChangesAsync();
-
+               
                 // Confirmar transacción
                 await transaction.CommitAsync();
 
