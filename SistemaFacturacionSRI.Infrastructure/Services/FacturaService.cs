@@ -3,8 +3,6 @@ using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Facturas;
 using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
-using System.Linq; // Necesario para .OrderBy()
-using System.Collections.Generic; // Necesario para List
 
 namespace SistemaFacturacionSRI.Infrastructure.Services
 {
@@ -42,34 +40,18 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 // 2. Procesar cada producto (Detalle)
                 foreach (var item in dto.Detalles)
                 {
-                    // Necesitamos cargar el producto, su stock, y su TarifaIva asociada
-                    var producto = await _context.Productos
-                        .FirstOrDefaultAsync(p => p.Id == item.ProductoId);
-
+                    var producto = await _context.Productos.FindAsync(item.ProductoId);
                     if (producto == null) throw new Exception($"Producto ID {item.ProductoId} no existe.");
 
-                    // Validar Stock
                     if (producto.Stock < item.Cantidad)
                         throw new Exception($"Stock insuficiente para el producto: {producto.Descripcion}");
 
-                    // --- LÓGICA DE ROTACIÓN (FEFO / FIFO) PARA LOTES ---
-                    IQueryable<LoteProducto> queryLotes = _context.LotesProducto
-                        .Where(l => l.ProductoId == item.ProductoId && l.CantidadActual > 0);
-
-                    if (producto.EsPerecible)
-                    {
-                        // FEFO: Ordenar por la fecha de caducidad más próxima (más antigua)
-                        // Esto garantiza que el inventario perecible rote primero lo que está por vencer.
-                        queryLotes = queryLotes
-                            .OrderBy(l => l.FechaCaducidad); // Los nulos van al final, los no nulos (fechas) se ordenan
-                    }
-                    else
-                    {
-                        // FIFO: Ordenar por la fecha de registro (el lote que entró primero)
-                        queryLotes = queryLotes.OrderBy(l => l.FechaRegistro);
-                    }
-
-                    var lotesDisponibles = await queryLotes.ToListAsync();
+                    // --- LÓGICA FIFO (First-In, First-Out) PARA LOTES ---
+                    // Obtenemos los lotes con stock, ordenados por fecha de caducidad (los más viejos primero)
+                    var lotesDisponibles = await _context.LotesProducto
+                        .Where(l => l.ProductoId == item.ProductoId && l.CantidadActual > 0)
+                        .OrderBy(l => l.FechaCaducidad.HasValue ? l.FechaCaducidad.Value : l.FechaRegistro)
+                        .ToListAsync();
 
                     int cantidadPorDescontar = item.Cantidad;
 
@@ -84,7 +66,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         lote.CantidadActual -= aTomar;
                         cantidadPorDescontar -= aTomar;
 
-                        // Actualizamos el lote en el contexto 
+                        // Actualizamos el lote en el contexto (EF Core lo detecta, pero es buena práctica ser explícito si hay lógica compleja)
                         _context.Entry(lote).State = EntityState.Modified;
                     }
 
@@ -99,11 +81,9 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                     // 4. Calcular Valores Monetarios
                     decimal subtotalLinea = item.Cantidad * producto.PrecioUnitario;
+                    // Cálculo de IVA: (Precio * Cantidad) * (Porcentaje / 100)
+                    decimal ivaLinea = subtotalLinea * (producto.TarifaIva.Porcentaje / 100m);
 
-                    // CORRECCIÓN: Usamos la relación TarifaIva para obtener el porcentaje
-                    // Si por alguna razón la relación es nula, usamos 0% como fallback.
-                    decimal ivaPorcentaje = producto.TarifaIva?.Porcentaje ?? 0.00m;
-                    decimal ivaLinea = subtotalLinea * (ivaPorcentaje / 100m);
 
                     subtotalFactura += subtotalLinea;
                     totalIvaFactura += ivaLinea;
@@ -113,7 +93,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     {
                         ProductoId = item.ProductoId,
                         Cantidad = item.Cantidad,
-                        PrecioUnitario = producto.PrecioUnitario, // Precio histórico de venta
+                        PrecioUnitario = producto.PrecioUnitario, // Precio histórico
                         Subtotal = subtotalLinea
                     });
                 }
