@@ -50,7 +50,6 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                     // Validar Stock
                     if (producto.Stock < item.Cantidad)
-                        // CORRECCIÓN: Se usa la nueva propiedad Descripcion
                         throw new Exception($"Stock insuficiente para el producto: {producto.Descripcion}");
 
                     // --- LÓGICA DE ROTACIÓN (FEFO / FIFO) PARA LOTES ---
@@ -76,6 +75,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                     foreach (var lote in lotesDisponibles)
                     {
+                        Console.WriteLine(lote.CantidadActual);
                         if (cantidadPorDescontar == 0) break;
 
                         int aTomar = Math.Min(cantidadPorDescontar, lote.CantidadActual);
@@ -90,7 +90,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                     if (cantidadPorDescontar > 0)
                     {
-                        // CORRECCIÓN: Se usa la nueva propiedad Descripcion
+                        // Esto no debería pasar si validamos producto.Stock < item.Cantidad, pero es una doble seguridad
                         throw new Exception($"Inconsistencia en lotes para el producto {producto.Descripcion}. Falta stock físico.");
                     }
 
@@ -122,11 +122,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 nuevaFactura.Subtotal = subtotalFactura;
                 nuevaFactura.TotalIVA = totalIvaFactura;
                 nuevaFactura.Total = subtotalFactura + totalIvaFactura;
-
+               
                 // 7. Guardar en Base de Datos
                 _context.Facturas.Add(nuevaFactura);
                 await _context.SaveChangesAsync();
-
+               
                 // Confirmar transacción
                 await transaction.CommitAsync();
 

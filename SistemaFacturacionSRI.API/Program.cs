@@ -2,9 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Infrastructure.Persistence; // La ubicación de tu AppDbContext
 using SistemaFacturacionSRI.Infrastructure.Services; // para ProductoService y ClienteService
+using System.Text.Json.Serialization;
 
-
-// ...
 var builder = WebApplication.CreateBuilder(args);
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -40,7 +39,11 @@ builder.Services.AddScoped<IFacturaService, FacturaService>();
 
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(x =>
+{
+    // Esta opción evita el bucle infinito ignorando el objeto repetido
+    x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

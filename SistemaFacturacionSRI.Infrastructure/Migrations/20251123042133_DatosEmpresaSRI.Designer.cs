@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using SistemaFacturacionSRI.Infrastructure.Persistence;
 namespace SistemaFacturacionSRI.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251123042133_DatosEmpresaSRI")]
+    partial class DatosEmpresaSRI
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,6 +64,108 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                     b.ToTable("Clientes");
                 });
 
+            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.ConfiguracionSRI", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaveFirma")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaSubida")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("FirmaElectronica")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("NombreArchivo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ConfiguracionesSRI");
+                });
+
+            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.DetalleFactura", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FacturaId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PrecioUnitario")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<int>("ProductoId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FacturaId");
+
+                    b.HasIndex("ProductoId");
+
+                    b.ToTable("DetallesFactura");
+                });
+
+            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.Factura", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaveAcceso")
+                        .HasMaxLength(49)
+                        .HasColumnType("nvarchar(49)");
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("FechaEmision")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("TotalIVA")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<string>("XmlGenerado")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.ToTable("Facturas");
+                });
+
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.LoteProducto", b =>
                 {
                     b.Property<int>("Id")
@@ -75,17 +180,14 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                     b.Property<int>("CantidadInicial")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("CostoTotalLote")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.Property<DateTime?>("FechaCaducidad")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("PrecioCompraUnitario")
-                        .HasColumnType("decimal(18, 5)");
+                    b.Property<decimal>("PrecioCompra")
+                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("ProductoId")
                         .HasColumnType("int");
@@ -127,24 +229,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<bool>("EsPerecible")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("Estado")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Marca")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("NombreGenerico")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal?>("PorcentajeICE")
                         .HasColumnType("decimal(5,2)");
@@ -152,78 +241,26 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                     b.Property<decimal?>("PorcentajeIRBPNR")
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<decimal>("PorcentajeIVA")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("PrecioCompra")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("PrecioUnitario")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("Presentacion")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("Stock")
+                    b.Property<decimal?>("Stock")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("TarifaIvaId")
-                        .HasColumnType("int");
+                    b.Property<string>("TipoProducto")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TarifaIvaId");
 
                     b.ToTable("Productos");
-                });
-
-            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.TarifaIva", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CodigoSRI")
-                        .IsRequired()
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
-
-                    b.Property<decimal>("Porcentaje")
-                        .HasColumnType("decimal(5, 2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TarifasIva");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CodigoSRI = "0",
-                            Porcentaje = 0.00m
-                        },
-                        new
-                        {
-                            Id = 2,
-                            CodigoSRI = "2",
-                            Porcentaje = 12.00m
-                        },
-                        new
-                        {
-                            Id = 3,
-                            CodigoSRI = "4",
-                            Porcentaje = 15.00m
-                        },
-                        new
-                        {
-                            Id = 4,
-                            CodigoSRI = "5",
-                            Porcentaje = 5.00m
-                        },
-                        new
-                        {
-                            Id = 5,
-                            CodigoSRI = "8",
-                            Porcentaje = 8.00m
-                        });
                 });
 
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.Usuario", b =>
@@ -311,6 +348,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.Factura", b =>
+                {
+                    b.Navigation("Detalles");
                 });
 #pragma warning restore 612, 618
         }

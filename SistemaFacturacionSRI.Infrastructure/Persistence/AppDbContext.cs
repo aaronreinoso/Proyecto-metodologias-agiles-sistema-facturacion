@@ -12,6 +12,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         public DbSet<Factura> Facturas { get; set; }
         public DbSet<DetalleFactura> DetallesFactura { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<ConfiguracionSRI> ConfiguracionesSRI { get; set; }
 
         // NUEVO: Tabla de Tarifas de IVA
         public DbSet<TarifaIva> TarifasIva { get; set; }

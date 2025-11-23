@@ -139,7 +139,7 @@
                                 <span class="text-primary">$@((carrito.Sum(x => x.Subtotal) + CalcularIVA()).ToString("F2"))</span>
                             </div>
 
-                            <button class="btn btn-success w-100 mt-3 py-2" disabled="@(clienteActual == null || carrito.Count == 0)">
+                            <button class="btn btn-success w-100 mt-3 py-2" disabled="@(clienteActual == null || carrito.Count == 0)" @onclick="()=>GenerarFactura()">
                                 <i class="bi bi-check-circle"></i> Generar Factura
                             </button>
                         </div>
@@ -239,6 +239,60 @@
     private decimal CalcularIVA()
     {
         return carrito.Sum(x => x.Subtotal * (x.PorcentajeIVA / 100));
+    }
+
+    Boolean isSubmitting = false;
+    private async Task GenerarFactura()
+    {
+      
+        if (clienteActual == null || !carrito.Any()) return;
+
+        isSubmitting = true; // Bloquear botón para evitar doble clic (necesitas declarar esta variable si no existe)
+
+        try
+        {
+            Console.WriteLine("Generando Factura");
+            // 1. Preparamos el DTO según lo que espera tu API (CreateFacturaDto)
+            var facturaDto = new Domain.DTOs.Facturas.CreateFacturaDto
+            {
+                ClienteId = clienteActual.Id,
+                Detalles = carrito.Select(item => new Domain.DTOs.Facturas.CreateDetalleFacturaDto
+                {
+                    ProductoId = item.ProductoId,
+                    Cantidad = item.Cantidad
+                }).ToList()
+            };
+            Console.WriteLine("Antes del response");
+            // 2. Llamamos a tu Controlador usando HTTP POST
+            var response = await Http.PostAsJsonAsync("api/facturas", facturaDto);
+            Console.WriteLine("Despues del response");
+            if (response.IsSuccessStatusCode)
+            {
+                // Éxito: Limpiar carrito y avisar
+                carrito.Clear();
+                clienteSeleccionadoId = 0; // Resetear cliente si quieres
+                clienteActual = null;
+
+                // Opcional: Navegar a una página de éxito o mostrar mensaje
+                // await JS.InvokeVoidAsync("alert", "Factura creada exitosamente!");
+                Console.WriteLine("Factura Creada");
+            }
+            else
+            {
+                // Error: Leer mensaje del backend (ej: "Stock insuficiente")
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                // Podrías asignar esto a tu variable 'errorMessage' para mostrarlo en pantalla
+                Console.WriteLine($"Error: {errorMsg}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error de conexión: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
     }
 }
 
