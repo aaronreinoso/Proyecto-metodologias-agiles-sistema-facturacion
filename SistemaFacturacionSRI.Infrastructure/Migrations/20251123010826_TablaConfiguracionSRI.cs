@@ -6,23 +6,26 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SistemaFacturacionSRI.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AgregarCamposCliente : Migration
+    public partial class TablaConfiguracionSRI : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Pais",
-                table: "Clientes",
-                type: "nvarchar(max)",
-                nullable: true);
-
-            migrationBuilder.AddColumn<int>(
-                name: "TipoIdentificacion",
-                table: "Clientes",
-                type: "int",
-                nullable: false,
-                defaultValue: 0);
+            migrationBuilder.CreateTable(
+                name: "ConfiguracionesSRI",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FirmaElectronica = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
+                    ClaveFirma = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    NombreArchivo = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FechaSubida = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ConfiguracionesSRI", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "Facturas",
@@ -99,18 +102,13 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ConfiguracionesSRI");
+
+            migrationBuilder.DropTable(
                 name: "DetallesFactura");
 
             migrationBuilder.DropTable(
                 name: "Facturas");
-
-            migrationBuilder.DropColumn(
-                name: "Pais",
-                table: "Clientes");
-
-            migrationBuilder.DropColumn(
-                name: "TipoIdentificacion",
-                table: "Clientes");
         }
     }
 }

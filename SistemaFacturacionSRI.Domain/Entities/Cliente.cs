@@ -11,6 +11,6 @@ namespace SistemaFacturacionSRI.Domain.Entities
         public string Direccion { get; set; } = string.Empty;
         public string Telefono { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public string? Pais { get; set; } // Nuevo Campo Opcional
+        public string? Pais { get; set; }
     }
 }

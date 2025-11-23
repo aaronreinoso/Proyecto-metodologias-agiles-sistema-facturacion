@@ -12,6 +12,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         public DbSet<Factura> Facturas { get; set; }
         public DbSet<DetalleFactura> DetallesFactura { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<ConfiguracionSRI> ConfiguracionesSRI { get; set; }
 
         // --- Constructor necesario para la Inyección de Dependencias ---
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)

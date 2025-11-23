@@ -12,8 +12,8 @@ using SistemaFacturacionSRI.Infrastructure.Persistence;
 namespace SistemaFacturacionSRI.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251123023712_AgregarCamposCliente")]
-    partial class AgregarCamposCliente
+    [Migration("20251123010826_TablaConfiguracionSRI")]
+    partial class TablaConfiguracionSRI
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -49,19 +49,41 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Pais")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Telefono")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TipoIdentificacion")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.ToTable("Clientes");
+                });
+
+            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.ConfiguracionSRI", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaveFirma")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("FechaSubida")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("FirmaElectronica")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("NombreArchivo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ConfiguracionesSRI");
                 });
 
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.DetalleFactura", b =>
