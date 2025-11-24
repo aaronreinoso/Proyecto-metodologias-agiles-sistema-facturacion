@@ -6,71 +6,230 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
+<PageTitle>Configuración SRI</PageTitle>
+
+<style>
+    /* ------------------------------------------- */
+    /* ESTILOS BASE Y ESTRUCTURA (Consistente) */
+    /* ------------------------------------------- */
+    .container {
+        max-width: 1100px;
+        margin: 60px auto;
+        padding: 0;
+    }
+
+    .config-card {
+        background: #ffffff;
+        border-radius: 20px; /* Un poco más grande */
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+    }
+
+    .config-card-header {
+        background-color: #f9fafb;
+        padding: 25px 30px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+        .config-card-header h4 {
+            font-weight: 700;
+            color: #0058ff; /* Título principal en azul */
+            font-size: 1.5rem;
+        }
+
+    .config-card-body {
+        padding: 30px;
+    }
+
+    .text-muted {
+        color: #6b7280;
+    }
+
+    /* ------------------------------------------- */
+    /* FORMULARIOS Y LABELS */
+    /* ------------------------------------------- */
+    label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .form-control, .form-select, .form-check-input {
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: border-color 0.2s ease;
+        width: 100%;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #0058ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
+        }
+
+    .validation-message {
+        color: #ef4444;
+        font-size: 0.9em;
+        display: block;
+        margin-top: 5px;
+    }
+
+    .text-secondary-title {
+        color: #4b5563; /* Gris oscuro para subtítulos */
+        font-weight: 700;
+        font-size: 1.2rem;
+        border-bottom: 1px dashed #e5e7eb;
+        padding-bottom: 8px;
+        margin-bottom: 20px;
+    }
+
+    /* ------------------------------------------- */
+    /* SECCIONES Y DIVISORES */
+    /* ------------------------------------------- */
+    .row-divider {
+        border-right: 1px solid #e5e7eb;
+    }
+
+    /* Checkbox personalizado */
+    .form-check {
+        padding-left: 0;
+    }
+
+    .form-check-label {
+        margin-left: 10px;
+        cursor: pointer;
+    }
+
+    /* ------------------------------------------- */
+    /* FIRMA ELECTRÓNICA */
+    /* ------------------------------------------- */
+    .file-drop-area {
+        border: 2px dashed #93c5fd !important; /* Azul más claro */
+        background-color: #f7faff;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    /* Estilos para el InputFile dentro del área */
+    .input-file-custom {
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #c7d2fe;
+        background-color: #ffffff;
+    }
+
+    /* Mostrar info de archivo cargado */
+    .alert-firma-ok {
+        background-color: #d1fae5;
+        color: #065f46;
+        border-color: #6ee7b7;
+    }
+
+    .alert-firma-warning {
+        background-color: #fef3c7;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
+
+    .alert-info {
+        background-color: #e0f2fe;
+        color: #0c4a6e;
+    }
+
+    /* ------------------------------------------- */
+    /* BOTÓN PRINCIPAL */
+    /* ------------------------------------------- */
+    .btn-success {
+        /* Estilo verde degradado (Guardar) */
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+        transition: all 0.2s ease;
+    }
+
+        .btn-success:disabled {
+            opacity: 0.6;
+            box-shadow: none;
+        }
+
+</style>
+
 <AuthorizeView Roles="Administrador">
     <Authorized>
         <div class="container">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <h4 class="mb-0 text-primary">🛡️ Configuración de Facturación SRI</h4>
+            <div class="config-card">
+                <div class="config-card-header">
+                    <h4 class="mb-0">🛡️ Configuración de Facturación SRI</h4>
                 </div>
 
-                <div class="card-body">
-                    <p class="text-muted mb-4">Configure los datos de su empresa y su firma electrónica para la emisión de comprobantes.</p>
+                <div class="config-card-body">
+                    <p class="text-muted mb-4">Administra tu perfil, establece tus códigos de emisión y configura la firma electrónica.</p>
 
                     <EditForm Model="@modelo" OnValidSubmit="GuardarTodo" Context="formContext">
                         <DataAnnotationsValidator />
 
                         <div class="row">
-                            <div class="col-md-6 border-end pe-4">
-                                <h5 class="text-secondary mb-3">🏢 Datos del Emisor</h5>
+                            <div class="col-md-6 row-divider pe-4">
+                                <h5 class="text-secondary-title">🏢 Datos del Emisor</h5>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">RUC</label>
+                                    <label class="form-label">RUC</label>
                                     <InputText @bind-Value="modelo.Ruc" class="form-control" placeholder="Ej: 1722..." />
                                     <ValidationMessage For="@(() => modelo.Ruc)" />
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Razón Social</label>
+                                    <label class="form-label">Razón Social</label>
                                     <InputText @bind-Value="modelo.RazonSocial" class="form-control" />
                                     <ValidationMessage For="@(() => modelo.RazonSocial)" />
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Nombre Comercial</label>
+                                    <label class="form-label">Nombre Comercial (Opcional)</label>
                                     <InputText @bind-Value="modelo.NombreComercial" class="form-control" />
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Dirección Matriz</label>
+                                    <label class="form-label">Dirección Matriz</label>
                                     <InputText @bind-Value="modelo.DireccionMatriz" class="form-control" />
                                     <ValidationMessage For="@(() => modelo.DireccionMatriz)" />
                                 </div>
 
+                                <label class="form-label mb-2">Códigos de Emisión</label>
                                 <div class="row">
                                     <div class="col-6 mb-3">
-                                        <label class="form-label fw-bold">Estab.</label>
-                                        <InputText @bind-Value="modelo.CodigoEstablecimiento" class="form-control" placeholder="001" />
+                                        <InputText @bind-Value="modelo.CodigoEstablecimiento" class="form-control" placeholder="001 (Establecimiento)" />
                                     </div>
                                     <div class="col-6 mb-3">
-                                        <label class="form-label fw-bold">Pto. Emisión</label>
-                                        <InputText @bind-Value="modelo.CodigoPuntoEmision" class="form-control" placeholder="001" />
+                                        <InputText @bind-Value="modelo.CodigoPuntoEmision" class="form-control" placeholder="001 (Punto Emisión)" />
                                     </div>
                                 </div>
+                                <ValidationMessage For="@(() => modelo.CodigoEstablecimiento)" />
+                                <ValidationMessage For="@(() => modelo.CodigoPuntoEmision)" />
 
-                                <div class="form-check mb-3">
+
+                                <div class="form-check mt-3">
                                     <InputCheckbox @bind-Value="modelo.ObligadoContabilidad" class="form-check-input" id="chkObligado" />
                                     <label class="form-check-label" for="chkObligado">Obligado a llevar contabilidad</label>
                                 </div>
                             </div>
 
                             <div class="col-md-6 ps-4">
-                                <h5 class="text-secondary mb-3">🔐 Firma Electrónica</h5>
+                                <h5 class="text-secondary-title">🔐 Firma Electrónica</h5>
 
-                                <div class="mb-4 p-4 border rounded text-center bg-light" style="border-style: dashed !important;">
-                                    <label class="form-label fw-bold text-secondary">Archivo de Firma (.p12)</label>
+                                <div class="mb-4 file-drop-area">
+                                    <label class="form-label">Archivo de Firma (.p12)</label>
                                     <div class="mt-2">
-                                        <InputFile OnChange="CargarArchivo" class="form-control w-75 mx-auto" accept=".p12" />
+                                        <InputFile OnChange="CargarArchivo" class="input-file-custom mx-auto" accept=".p12" />
                                     </div>
                                     <small class="d-block mt-2 text-muted">
                                         @(string.IsNullOrEmpty(nombreArchivoLocal)
@@ -80,33 +239,34 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold">Contraseña de la Firma</label>
+                                    <label class="form-label">Contraseña de la Firma</label>
                                     <InputText @bind-Value="modelo.ClaveFirma" type="password" class="form-control" placeholder="Ingrese solo si sube un nuevo archivo" />
+                                    <ValidationMessage For="@(() => modelo.ClaveFirma)" />
                                 </div>
 
                                 @if (configGuardada != null && !string.IsNullOrEmpty(configGuardada.NombreArchivo))
                                 {
-                                    <div class="alert alert-info py-2 d-flex align-items-center">
+                                    <div class="alert alert-firma-ok py-2 d-flex align-items-center">
                                         <span class="me-2">✅</span>
                                         <div>
                                             <small class="d-block fw-bold">Firma actual cargada:</small>
-                                            <small>@configGuardada.NombreArchivo (@configGuardada.FechaSubida)</small>
+                                            <small>@configGuardada.NombreArchivo (Subida el @(configGuardada.FechaSubida?.ToShortDateString() ?? "sin fecha"))</small>
                                         </div>
                                     </div>
                                 }
                                 else
                                 {
-                                    <div class="alert alert-warning py-2">
-                                        <small>⚠️ No hay firma electrónica configurada.</small>
+                                    <div class="alert alert-firma-warning py-2">
+                                        <small>⚠️ No hay firma electrónica configurada. La facturación está deshabilitada.</small>
                                     </div>
                                 }
                             </div>
                         </div>
 
-                        <hr class="my-4" />
+                        <hr class="my-4" style="border-top: 2px solid #e5e7eb;" />
 
                         <div class="text-end">
-                            <button type="submit" class="btn btn-success btn-lg px-5" disabled="@procesando">
+                            <button type="submit" class="btn-success" disabled="@procesando">
                                 @if (procesando)
                                 {
                                     <span>⏳ Guardando...</span>
@@ -204,8 +364,11 @@
             if (!string.IsNullOrEmpty(modelo.NombreComercial))
                 content.Add(new StringContent(modelo.NombreComercial), nameof(modelo.NombreComercial));
 
-            if (!string.IsNullOrEmpty(modelo.DireccionEstablecimiento))
-                content.Add(new StringContent(modelo.DireccionEstablecimiento), nameof(modelo.DireccionEstablecimiento));
+            // Nota: DireccionEstablecimiento no se utiliza en el formulario actual, pero se incluye por si se añade más tarde.
+            // Si el campo DireccionEstablecimiento se añade al formulario, debe ser bind-Value,
+            // pero si no se usa en el modelo, se envía un valor vacío para evitar nulls.
+            content.Add(new StringContent(modelo.DireccionEstablecimiento ?? modelo.DireccionMatriz), nameof(modelo.DireccionEstablecimiento));
+
 
             // 2. Gestión del Archivo (Firma)
             if (archivoSeleccionado != null)

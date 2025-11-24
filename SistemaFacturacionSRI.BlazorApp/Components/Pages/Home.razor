@@ -3,9 +3,146 @@
 
 <PageTitle>Home - Sistema de Facturación</PageTitle>
 
+<style>
+    /* ------------------------------------------- */
+    /* ESTILOS DE PÁGINA DE INICIO / DASHBOARD */
+    /* ------------------------------------------- */
+    .home-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 48px;
+    }
+
+    /* --- ENCABEZADO / HERO (Adaptado al estilo Dashboard claro) --- */
+    .welcome-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #f7faff; /* Fondo azul muy claro para diferenciarlo */
+        color: #1a1a1a;
+        padding: 30px 40px;
+        border-radius: 16px;
+        margin-bottom: 30px;
+        border: 1px solid #e0e7ff;
+        box-shadow: 0 4px 15px rgba(0, 85, 255, 0.05);
+    }
+
+        .welcome-header .title {
+            font-size: 2rem; /* 32px */
+            font-weight: 700;
+            color: #0058ff; /* Título principal en azul */
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-header .subtitle {
+            font-size: 1.1rem;
+            color: #4b5563; /* Gris oscuro para el subtítulo */
+            opacity: 0.95;
+            margin-bottom: 0;
+        }
+
+    .welcome-icon {
+        font-size: 4rem;
+        color: #0058ff;
+        opacity: 0.8;
+        margin-left: 2rem;
+    }
+    /* --- FIN DE ESTILOS DEL HERO --- */
+
+
+    /* --- GRID DE ACCESO RÁPIDO (Tarjetas) --- */
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .access-card {
+        background-color: #ffffff;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        cursor: pointer;
+        border: 1px solid #e5e7eb;
+    }
+
+        .access-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-color: #c7d2fe;
+        }
+
+    .card-icon {
+        font-size: 2.5rem;
+        color: #0058ff; /* Icono en azul */
+        margin-bottom: 1rem;
+        display: block;
+        background-color: #e6f0ff; /* Fondo sutil para el ícono */
+        padding: 10px;
+        border-radius: 8px;
+        width: 4.5rem;
+        height: 4.5rem;
+        text-align: center;
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #1a1a1a;
+    }
+
+    .card-description {
+        font-size: 0.95rem;
+        color: #6b7280;
+        line-height: 1.4;
+    }
+
+    /* ESTADO DESHABILITADO */
+    .access-card.disabled {
+        background-color: #f8fafc;
+        cursor: not-allowed;
+        opacity: 0.8;
+    }
+
+        .access-card.disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-color: #e5e7eb;
+        }
+
+        .access-card.disabled .card-icon {
+            color: #9ca3af;
+            background-color: #f3f4f6;
+        }
+
+        .access-card.disabled .card-title,
+        .access-card.disabled .card-description {
+            color: #9ca3af;
+        }
+
+    /* Responsividad */
+    @@media (max-width: 768px) {
+        .home-container {
+            padding: 0 20px;
+        }
+
+        .welcome-header {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .welcome-icon {
+            margin: 1.5rem 0 0 0;
+        }
+    }
+
+</style>
+
 <div class="home-container">
 
-    <!-- Título y bienvenida (Rediseñado como sección "Hero") -->
+    <!-- Título y bienvenida (Rediseñado para ser un encabezado de Dashboard) -->
     <div class="welcome-header">
         <div class="welcome-text">
             <h1 class="title">Bienvenido al Sistema de Facturación</h1>
@@ -15,29 +152,25 @@
         <span class="oi oi-spreadsheet welcome-icon" aria-hidden="true"></span>
     </div>
 
-    <!-- Contenedor de tarjetas de acceso rápido (Sin cambios) -->
+    <!-- Contenedor de tarjetas de acceso rápido -->
     <div class="quick-access-grid">
 
         <!-- Tarjeta de Clientes -->
-        <!-- CORRECCIÓN: Se añade el parámetro "/clientes" a NavigateTo -->
         <div class="access-card" @onclick='() => NavigateTo("/clientes")'>
             <span class="oi oi-people card-icon" aria-hidden="true"></span>
-            <!-- CORRECCIÓN: Se cierra <h3> correctamente -->
             <h3 class="card-title">Gestión de Clientes</h3>
             <p class="card-description">Administre su cartera de clientes. Cree, edite y consulte información.</p>
         </div>
 
         <!-- Tarjeta de Productos -->
-        <!-- CORRECCIÓN: Se añade el parámetro "/productos" a NavigateTo -->
         <div class="access-card" @onclick='() => NavigateTo("/productos")'>
             <span class="oi oi-box card-icon" aria-hidden="true"></span>
-            <!-- CORRECCIÓN: Se cierra <h3> correctamente -->
             <h3 class="card-title">Gestión de Productos</h3>
             <p class="card-description">Configure sus productos y servicios listos para la facturación.</p>
         </div>
 
         <!-- Tarjeta de Facturación (Deshabilitada por ahora, para Sprint 2) -->
-        <div class="access-card disabled">
+        <div classs="access-card disabled">
             <span class="oi oi-document card-icon" aria-hidden="true"></span>
             <h3 class="card-title">Nueva Factura</h3>
             <p class="card-description">(Próximamente en Sprint 2) Emita nuevos comprobantes electrónicos.</p>
@@ -45,111 +178,6 @@
 
     </div>
 </div>
-
-<!--
-  Estilos CSS locales para esta página.
-  He modificado el "welcome-header" y añadido "welcome-icon".
--->
-<style>
-    .home-container {
-        /* Eliminamos el padding superior para que el hero se pegue */
-        padding: 0rem 2rem 2rem 2rem;
-    }
-
-    /* --- ESTILOS DEL NUEVO HERO --- */
-    .welcome-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        /* Un degradado sutil usando el azul oscuro de tu NavMenu */
-        background: linear-gradient(90deg, #3a2d7a 0%, #2a1b5c 100%);
-        color: #ffffff;
-        padding: 2.5rem 3rem;
-        border-radius: 12px;
-        margin-bottom: 2.5rem;
-        /* Sombra suave para que "flote" */
-        box-shadow: 0 10px 25px rgba(42, 27, 92, 0.2);
-    }
-
-        .welcome-header .title {
-            font-size: 2.25rem; /* 36px */
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 0.5rem;
-        }
-
-        .welcome-header .subtitle {
-            font-size: 1.125rem; /* 18px */
-            color: #e0e0e0; /* Un blanco más suave */
-            opacity: 0.9;
-        }
-
-    .welcome-icon {
-        font-size: 5rem; /* 80px */
-        color: #ffffff;
-        opacity: 0.3;
-        margin-left: 2rem;
-    }
-    /* --- FIN DE ESTILOS DEL HERO --- */
-
-
-    .quick-access-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .access-card {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        cursor: pointer;
-        border: 1px solid #eee;
-    }
-
-        .access-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-
-    .card-icon {
-        font-size: 2.5rem; /* 40px */
-        color: #0d6efd;
-        margin-bottom: 1rem;
-        display: block;
-    }
-
-    .card-title {
-        font-size: 1.25rem; /* 20px */
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #222;
-    }
-
-    .card-description {
-        font-size: 0.9rem; /* 14px */
-        color: #666;
-        line-height: 1.5;
-    }
-
-    .access-card.disabled {
-        background-color: #f9f9f9;
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-
-        .access-card.disabled:hover {
-            transform: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-
-        .access-card.disabled .card-icon {
-            color: #999;
-        }
-
-</style>
 
 @code {
     // Función para navegar al hacer clic en las tarjetas
