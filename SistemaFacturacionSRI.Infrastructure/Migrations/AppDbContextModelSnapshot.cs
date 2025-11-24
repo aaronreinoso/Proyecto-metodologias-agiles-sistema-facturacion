@@ -22,6 +22,44 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.AjusteInventario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CantidadAnterior")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CantidadNueva")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Diferencia")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaAjuste")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Justificacion")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("LoteProductoId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LoteProductoId");
+
+                    b.ToTable("AjustesInventario", (string)null);
+                });
+
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.Cliente", b =>
                 {
                     b.Property<int>("Id")
@@ -409,6 +447,17 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                             Password = "12345",
                             Rol = "Empleado"
                         });
+                });
+
+            modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.AjusteInventario", b =>
+                {
+                    b.HasOne("SistemaFacturacionSRI.Domain.Entities.LoteProducto", "LoteProducto")
+                        .WithMany()
+                        .HasForeignKey("LoteProductoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LoteProducto");
                 });
 
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.DetalleFactura", b =>

@@ -5,6 +5,7 @@ using SistemaFacturacionSRI.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
@@ -55,5 +56,47 @@ namespace SistemaFacturacionSRI.API.Controllers
             var lotes = await _loteService.GetLotesByProductoIdAsync(productoId);
             return Ok(lotes);
         }
+
+        /// <summary>
+        /// Realiza un ajuste manual en la cantidad de un lote específico. (IMPLEMENTACIÓN DE HU-008)
+        /// </summary>
+        [HttpPatch("{loteId}/ajuste")]
+        public async Task<IActionResult> RealizarAjuste(int loteId, [FromBody] CreateAjusteInventarioDto ajusteDto)
+        {
+            if (loteId != ajusteDto.LoteProductoId)
+                return BadRequest("El ID del lote en la ruta no coincide con el DTO.");
+
+            // 1. Obtener ID del usuario autenticado (Auditoría - CA-004)
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+
+        
+
+            try
+            {
+                var resultado = await _loteService.RealizarAjusteManualAsync(ajusteDto);
+                return resultado ? NoContent() : NotFound("Lote o Producto no encontrado.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Conflictos de negocio (ej. cantidad negativa)
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno al realizar el ajuste: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el historial de ajustes para un lote. (NUEVO REQUISITO DE LECTURA)
+        /// </summary>
+        [HttpGet("{loteId}/ajustes")]
+        public async Task<ActionResult<IEnumerable<AjusteInventario>>> GetAjustesPorLote(int loteId)
+        {
+            var ajustes = await _loteService.GetAjustesByLoteIdAsync(loteId);
+            return Ok(ajustes);
+        }
+
     }
 }

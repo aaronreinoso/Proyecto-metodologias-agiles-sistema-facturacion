@@ -1,0 +1,203 @@
+﻿@page "/productos/lotes/detalle/{LoteId:int}"
+@using Microsoft.AspNetCore.Components.Authorization
+@using SistemaFacturacionSRI.Domain.DTOs.LotesProducto
+@using SistemaFacturacionSRI.Domain.Entities
+@using System.Security.Claims
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Detalle y Ajuste de Lote N° @LoteId</PageTitle>
+
+<div class="container">
+    <div class="header d-flex justify-content-between align-items-center">
+        <h1>📦 Detalle de Lote N° @LoteId (@loteActual?.Producto?.Descripcion)</h1>
+        <button class="btn-secondary" @onclick="GoBack">← Volver a Lotes del Producto</button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="alert alert-info">Cargando datos del lote...</div>
+    }
+    else if (loteActual == null)
+    {
+        <div class="alert alert-danger">Lote no encontrado.</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(requestMessage))
+        {
+            <div class="alert @requestClase">@requestMessage</div>
+        }
+
+        <div class="card mb-4">
+            <div class="card-header">Información del Lote</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Cantidad Actual:</strong> <span class="badge bg-primary fs-5">@loteActual.CantidadActual</span><br />
+                        <strong>P. Compra Unitario:</strong> $@loteActual.PrecioCompraUnitario.ToString("0.00000")
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Fecha de Registro:</strong> @loteActual.FechaRegistro.ToShortDateString()<br />
+                        @if (loteActual.FechaCaducidad.HasValue)
+                        {
+                            <strong>Fecha de Caducidad:</strong> @loteActual.FechaCaducidad.Value.ToShortDateString()
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-5">
+                <h5 class="mt-4">📊 Realizar Ajuste Manual (HU-008)</h5>
+                <p class="text-muted">Corrija las existencias y justifique el cambio.</p>
+
+                <EditForm Model="@ajusteDto" OnValidSubmit="HandleAjusteSubmit">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label class="form-label">Nueva Cantidad de Existencias (*)</label>
+                        <InputNumber @bind-Value="ajusteDto.CantidadNueva" class="form-control" />
+                        <ValidationMessage For="@(() => ajusteDto.CantidadNueva)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Justificación (*)</label>
+                        <InputTextArea @bind-Value="ajusteDto.Justificacion" rows="3" class="form-control" />
+                        <ValidationMessage For="@(() => ajusteDto.Justificacion)" />
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100" disabled="@isSubmittingAjuste">
+                        @(isSubmittingAjuste ? "Procesando Ajuste..." : "Aplicar Ajuste de Stock")
+                    </button>
+                </EditForm>
+            </div>
+
+            <div class="col-md-7">
+                <h5 class="mt-4">📜 Historial de Ajustes</h5>
+                @if (ajustesHistorial == null || !ajustesHistorial.Any())
+                {
+                    <div class="alert alert-info">No se han realizado ajustes manuales a este lote.</div>
+                }
+                else
+                {
+                    <ul class="list-group">
+                        @foreach (var ajuste in ajustesHistorial)
+                        {
+                            <li class="list-group-item">
+                                **@ajuste.FechaAjuste.ToShortDateString()**:
+                                **@ajuste.Diferencia** unidades (@ajuste.CantidadAnterior -> @ajuste.CantidadNueva)<br />
+                                <small class="text-muted">Motivo: @ajuste.Justificacion</small>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int LoteId { get; set; }
+
+    private LoteProducto? loteActual;
+    private List<AjusteInventario>? ajustesHistorial; // Se asume que este modelo fue creado
+    private CreateAjusteInventarioDto ajusteDto = new(); 
+    private bool isLoading = true;
+    private bool isSubmittingAjuste = false;
+    private string requestMessage = "";
+    private string requestClase = "alert-info";
+    private int currentUserId; // Para la auditoría
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Obtener ID del usuario logueado para auditoría (CA-004)
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var idClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+        if (idClaim != null) int.TryParse(idClaim.Value, out currentUserId);
+        
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        requestMessage = "";
+        try
+        {
+            // 1. Obtener Lote (Se asume que GetLoteByIdAsync fue modificado para incluir el Producto si es necesario)
+            loteActual = await Http.GetFromJsonAsync<LoteProducto>($"api/lotes/{LoteId}");
+
+            // 2. Obtener Historial de Ajustes (Llama al nuevo endpoint creado)
+            ajustesHistorial = await Http.GetFromJsonAsync<List<AjusteInventario>>($"api/lotes/{LoteId}/ajustes");
+
+            // Inicializar el DTO de ajuste
+            if (loteActual != null)
+            {
+                ajusteDto = new CreateAjusteInventarioDto
+                {
+                    LoteProductoId = LoteId,
+                    CantidadNueva = loteActual.CantidadActual,
+                    Justificacion = ""
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            requestMessage = $"Error al cargar datos: {ex.Message}";
+            requestClase = "alert-danger";
+        }
+        isLoading = false;
+    }
+
+    private void GoBack()
+    {
+        // Navega de vuelta a la página de lotes del producto
+        NavManager.NavigateTo($"/productos/lotes/{loteActual?.ProductoId}");
+    }
+
+    private async Task HandleAjusteSubmit()
+    {
+        isSubmittingAjuste = true;
+        requestMessage = "";
+
+        try
+        {
+            ajusteDto.UsuarioId = currentUserId; // Asignar el usuario autenticado (Auditoría)
+            // Llama al endpoint PATCH que ya creamos en el controlador
+            var response = await Http.PatchAsJsonAsync($"api/lotes/{LoteId}/ajuste", ajusteDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                requestMessage = "✅ Ajuste manual registrado correctamente. Stock actualizado.";
+                requestClase = "alert-success";
+                
+                // CUMPLIMIENTO CA-005: Verificar si el stock quedó en cero
+                if (ajusteDto.CantidadNueva == 0)
+                {
+                    // NOTA: Se debe tener una interfaz de edición de producto para cambiar el estado
+                    requestMessage += " (Recomendación: Considere cambiar el estado del producto a Inactivo)";
+                }
+
+                await LoadData(); // Recargar datos del lote y el historial
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                requestMessage = $"❌ Error: {errorBody}";
+                requestClase = "alert-danger";
+            }
+        }
+        catch (Exception ex)
+        {
+            requestMessage = $"Error de comunicación: {ex.Message}";
+            requestClase = "alert-danger";
+        }
+        finally
+        {
+            isSubmittingAjuste = false;
+        }
+    }
+}

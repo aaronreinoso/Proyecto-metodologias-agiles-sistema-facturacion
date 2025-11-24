@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SistemaFacturacionSRI.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Inicial : Migration
+    public partial class inicial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -201,6 +201,31 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "AjustesInventario",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    LoteProductoId = table.Column<int>(type: "int", nullable: false),
+                    CantidadAnterior = table.Column<int>(type: "int", nullable: false),
+                    CantidadNueva = table.Column<int>(type: "int", nullable: false),
+                    Diferencia = table.Column<int>(type: "int", nullable: false),
+                    Justificacion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    FechaAjuste = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UsuarioId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AjustesInventario", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AjustesInventario_LotesProducto_LoteProductoId",
+                        column: x => x.LoteProductoId,
+                        principalTable: "LotesProducto",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "TarifasIva",
                 columns: new[] { "Id", "CodigoSRI", "Porcentaje" },
@@ -221,6 +246,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                     { 1, true, "admin", "12345", "Administrador" },
                     { 2, true, "vendedor", "12345", "Empleado" }
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AjustesInventario_LoteProductoId",
+                table: "AjustesInventario",
+                column: "LoteProductoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DetallesFactura_FacturaId",
@@ -252,16 +282,19 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "AjustesInventario");
+
+            migrationBuilder.DropTable(
                 name: "ConfiguracionesSRI");
 
             migrationBuilder.DropTable(
                 name: "DetallesFactura");
 
             migrationBuilder.DropTable(
-                name: "LotesProducto");
+                name: "Usuarios");
 
             migrationBuilder.DropTable(
-                name: "Usuarios");
+                name: "LotesProducto");
 
             migrationBuilder.DropTable(
                 name: "Facturas");

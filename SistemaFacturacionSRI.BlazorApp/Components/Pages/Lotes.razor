@@ -31,6 +31,15 @@
         cursor: pointer;
     }
 
+    /* ESTILO PARA FILAS CLICABLES */
+    .table-striped tbody tr {
+        cursor: pointer; /* Indicar que la fila es clickable */
+    }
+
+        .table-striped tbody tr:hover {
+            background-color: #f0f8ff; /* Color para indicar interactividad */
+        }
+
     .table-responsive {
         max-height: 350px;
         overflow-y: auto;
@@ -78,7 +87,6 @@
             <div class="alert @requestClase">@requestMessage</div>
         }
 
-        <!-- PRODUCTO -->
         <div class="card mb-4">
             <div class="card-body">
                 <div class="row">
@@ -97,8 +105,8 @@
                                 💾 Guardar Precio
                             </button>
 
-                                     
-                                     </div>
+
+                        </div>
 
                         <h5 class="mb-0">
                             Stock Total:
@@ -111,11 +119,10 @@
             </div>
         </div>
 
-        <!-- LOTES -->
         <h5 class="mt-4">📦 Lotes de Stock</h5>
 
         <div class="mb-3 d-flex justify-content-between align-items-center">
-            <p class="text-muted">Los lotes se consumen por FEFO/FIFO según parámetros.</p>
+            <p class="text-muted">Haga clic en un lote para ver su historial de ajustes y modificar su stock.</p>
             <button class="btn btn-primary" @onclick="OpenLoteModal">+ Agregar Stock (Lote)</button>
         </div>
 
@@ -143,7 +150,8 @@
                     <tbody>
                         @foreach (var lote in lotes)
                         {
-                            <tr>
+                            @* --- NAVEGACIÓN A PANTALLA DE AJUSTE (DetalleLote.razor) --- *@
+                            <tr style="cursor: pointer;" @onclick="@(() => NavManager.NavigateTo($"/productos/lotes/detalle/{lote.Id}"))">
                                 <td>@lote.Id</td>
                                 <td>@lote.CantidadActual</td>
                                 <td>$@lote.PrecioCompraUnitario.ToString("0.00000")</td>
@@ -162,7 +170,6 @@
     }
 </div>
 
-<!-- MODAL -->
 @if (showLoteModal)
 {
     <div class="modal-overlay">
@@ -216,8 +223,38 @@
     </div>
 }
 
+@if (showWarningPrecio)
+{
+    <div class="modal-overlay">
+        <div class="modal-box">
+
+            <h3 class="mb-3 text-warning">⚠ Advertencia de Precio</h3>
+
+            <p>@warningMessage</p>
+            <p>¿Desea continuar y registrar el lote de todas formas?</p>
+
+            <div class="d-flex justify-content-end mt-4">
+                <button class="btn btn-secondary me-2" @onclick="() => showWarningPrecio = false">
+                    Cancelar
+                </button>
+
+                <button class="btn btn-danger" @onclick="ConfirmarGuardadoConAdvertencia">
+                    Sí, Registrar Lote
+                </button>
+            </div>
+
+        </div>
+    </div>
+}
+
+
 @code {
     [Parameter] public int Id { get; set; }
+
+    private bool showWarningPrecio = false;
+    private string warningMessage = "";
+    private CreateLoteProducto lotePendienteConfirmacion;
+
 
     private Producto? productoActual;
     private List<LoteProducto>? lotes;
@@ -233,6 +270,14 @@
     private string requestMessage = "";
     private string requestClase = "alert-info";
 
+
+    private async Task ConfirmarGuardadoConAdvertencia()
+    {
+        showWarningPrecio = false;
+        await GuardarLote(lotePendienteConfirmacion);
+    }
+
+
     protected override async Task OnParametersSetAsync()
     {
         await LoadData();
@@ -242,7 +287,7 @@
     {
         try
         {
-            var dto = new { PrecioUnitario = productoActual.PrecioUnitario };
+            var dto = new { PrecioUnitario = productoActual!.PrecioUnitario };
 
             var response = await Http.PatchAsJsonAsync($"api/productos/{Id}/precio", dto);
 
@@ -289,7 +334,7 @@
         StateHasChanged();
     }
 
-    // --- MODAL LOGIC ---
+    // --- MODAL LOGIC (Agregar Lote) ---
 
     private void OpenLoteModal()
     {
@@ -326,6 +371,7 @@
         newLoteDto.CostoTotalLote = costoTotalLote;
     }
 
+
     private async Task HandleLoteSubmit()
     {
         UpdateCostos();
@@ -336,11 +382,26 @@
             return;
         }
 
+        // --- CA-006: Advertencia si compra > venta ---
+        if (newLoteDto.PrecioCompraUnitario > productoActual!.PrecioUnitario)
+        {
+            showWarningPrecio = true;
+            warningMessage = $"⚠ El precio unitario de compra ({newLoteDto.PrecioCompraUnitario:C}) es MAYOR que el precio de venta actual ({productoActual.PrecioUnitario:C}). Esto podría generar pérdida.";
+            lotePendienteConfirmacion = newLoteDto;  // guardamos la info temporal
+            return;    // NO guardar todavía
+        }
+
+        await GuardarLote(newLoteDto);
+    }
+
+
+    private async Task GuardarLote(CreateLoteProducto dto)
+    {
         isSubmittingLote = true;
 
         try
         {
-            var response = await Http.PostAsJsonAsync("api/lotes", newLoteDto);
+            var response = await Http.PostAsJsonAsync("api/lotes", dto);
 
             if (response.IsSuccessStatusCode)
             {
@@ -363,4 +424,6 @@
             isSubmittingLote = false;
         }
     }
+
+
 }

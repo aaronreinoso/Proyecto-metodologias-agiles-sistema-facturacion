@@ -17,6 +17,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         // NUEVO: Tabla de Tarifas de IVA
         public DbSet<TarifaIva> TarifasIva { get; set; }
 
+     
+
+        public DbSet<AjusteInventario> AjustesInventario { get; set; }
+
+
 
         // --- Constructor necesario para la Inyección de Dependencias ---
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -27,6 +32,8 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<AjusteInventario>().ToTable("AjustesInventario");
+
 
             // Configuraciones EXISTENTES de Producto
             // NOTA: Estas propiedades de Producto se eliminarán en el siguiente paso, 
@@ -58,6 +65,9 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
                 new TarifaIva { Id = 4, CodigoSRI = "5", Porcentaje = 5.00m },   // 5% (Construcción)
                 new TarifaIva { Id = 5, CodigoSRI = "8", Porcentaje = 8.00m }    // 8%
             );
+
+
+
         }
     }
 }
