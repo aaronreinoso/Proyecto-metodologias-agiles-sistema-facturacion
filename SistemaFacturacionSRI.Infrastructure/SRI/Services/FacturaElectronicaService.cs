@@ -1,5 +1,5 @@
 ﻿using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml; // Requerido: System.Security.Cryptography.Xml
+using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
@@ -12,52 +12,48 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
     {
         private readonly ClaveAccesoService _claveService;
 
-        // DATOS DE LA EMPRESA EMISORA (TODO: Deberías inyectar esto desde IConfiguration o una base de datos)
-        private const string RUC_EMISOR = "1790000000001";
-        private const string RAZON_SOCIAL_EMISOR = "MI EMPRESA S.A.";
-        private const string DIR_MATRIZ = "Av. Los Shyris y Suecia";
-        private const string ESTAB = "001";
-        private const string PTO_EMI = "002";
-
         public FacturaElectronicaService()
         {
             _claveService = new ClaveAccesoService();
         }
 
-        public byte[] GenerarXmlFirmado(Factura facturaDominio, string pathFirma, string passwordFirma)
+        // MODIFICADO: Ahora recibe la configuración (datos emisor + firma en bytes) y la contraseña descifrada
+        public byte[] GenerarXmlFirmado(Factura facturaDominio, ConfiguracionSRI configEmisor, string passwordFirma)
         {
-            // 1. Generar Clave de Acceso
-            // IMPORTANTE: Aquí asumimos ambiente "1" (Pruebas). Cambiar a "2" para producción.
+            // 1. Validar datos mínimos
+            if (configEmisor.FirmaElectronica == null || configEmisor.FirmaElectronica.Length == 0)
+                throw new Exception("No se ha cargado la firma electrónica en la configuración.");
+
+            // 2. Generar Clave de Acceso
+            // Nota: El ambiente '1' es Pruebas, '2' Producción. Podrías agregarlo a tu tabla Configuración si deseas.
             string ambiente = "1";
-            // Generamos un secuencial formateado a 9 dígitos (ej: 1 -> 000000001)
+
             string secuencial = facturaDominio.Id.ToString().PadLeft(9, '0');
-            string codigoNumerico = new Random().Next(10000000, 99999999).ToString(); // Aleatorio 8 dígitos
+            string codigoNumerico = new Random().Next(10000000, 99999999).ToString();
 
             string claveAcceso = _claveService.GenerarClaveAcceso(
                 facturaDominio.FechaEmision,
                 "01", // Tipo Factura
-                RUC_EMISOR,
+                configEmisor.Ruc, // Usamos el RUC de la DB
                 ambiente,
-                ESTAB,
-                PTO_EMI,
+                configEmisor.CodigoEstablecimiento, // Usamos Estab de la DB
+                configEmisor.CodigoPuntoEmision,    // Usamos PtoEmi de la DB
                 secuencial,
                 codigoNumerico
             );
 
-            // Guardamos la clave generada en la entidad de dominio para referencia futura
             facturaDominio.ClaveAcceso = claveAcceso;
 
-            // 2. Mapear Dominio (BD) -> Modelo XML SRI
-            var facturaSRI = MapearFactura(facturaDominio, claveAcceso, ambiente, secuencial);
+            // 3. Mapear Dominio (BD) -> Modelo XML SRI (Pasamos la config)
+            var facturaSRI = MapearFactura(facturaDominio, configEmisor, claveAcceso, ambiente, secuencial);
 
-            // 3. Serializar a XML String (UTF-8)
+            // 4. Serializar a XML String (UTF-8)
             string xmlString = "";
             var serializer = new XmlSerializer(typeof(FacturaSRI));
 
-            // Usamos XmlWriterSettings para evitar el BOM y asegurar UTF-8
             var settings = new XmlWriterSettings
             {
-                Encoding = new UTF8Encoding(false), // False para quitar BOM
+                Encoding = new UTF8Encoding(false),
                 Indent = true
             };
 
@@ -70,66 +66,74 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
                 xmlString = stringWriter.ToString();
             }
 
-            // 4. Firmar el XML (XAdES-BES)
+            // 5. Firmar el XML (XAdES-BES) usando BYTES
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.PreserveWhitespace = true;
             xmlDoc.LoadXml(xmlString);
 
-            FirmarXml(xmlDoc, pathFirma, passwordFirma);
+            // Pasamos los bytes de la firma
+            FirmarXml(xmlDoc, configEmisor.FirmaElectronica, passwordFirma);
 
             return Encoding.UTF8.GetBytes(xmlDoc.OuterXml);
         }
 
-        private FacturaSRI MapearFactura(Factura f, string claveAcceso, string ambiente, string secuencial)
+        private FacturaSRI MapearFactura(Factura f, ConfiguracionSRI config, string claveAcceso, string ambiente, string secuencial)
         {
             var xml = new FacturaSRI();
 
-            // --- Info Tributaria ---
+            // --- Info Tributaria (Datos dinámicos desde la DB) ---
             xml.InfoTributaria = new InfoTributaria
             {
                 Ambiente = ambiente,
-                TipoEmision = "1",
-                RazonSocial = RAZON_SOCIAL_EMISOR,
-                NombreComercial = RAZON_SOCIAL_EMISOR,
-                Ruc = RUC_EMISOR,
+                TipoEmision = "1", // Normal
+                RazonSocial = config.RazonSocial,
+                NombreComercial = config.NombreComercial ?? config.RazonSocial,
+                Ruc = config.Ruc,
                 ClaveAcceso = claveAcceso,
-                CodDoc = "01", // Factura
-                Estab = ESTAB,
-                PtoEmi = PTO_EMI,
+                CodDoc = "01",
+                Estab = config.CodigoEstablecimiento,
+                PtoEmi = config.CodigoPuntoEmision,
                 Secuencial = secuencial,
-                DirMatriz = DIR_MATRIZ
+                DirMatriz = config.DireccionMatriz
             };
 
             // --- Info Factura ---
             xml.InfoFactura = new InfoFactura
             {
                 FechaEmision = f.FechaEmision.ToString("dd/MM/yyyy"),
-                DirEstablecimiento = DIR_MATRIZ,
-                ObligadoContabilidad = "NO",
-                // TODO: Validar lógica para tipo ID (05 cedula, 04 ruc, 06 pasaporte, 07 consumidor final)
+                DirEstablecimiento = config.DireccionEstablecimiento ?? config.DireccionMatriz,
+                ObligadoContabilidad = config.ObligadoContabilidad ? "SI" : "NO",
+                ContribuyenteEspecial = config.ContribuyenteEspecial, // Si aplica
+
+                // TODO: Asegúrate que tu cliente tenga 13 dígitos para RUC o 10 para cédula
                 TipoIdentificacionComprador = f.Cliente.Identificacion.Length == 13 ? "04" : "05",
                 RazonSocialComprador = f.Cliente.NombreCompleto,
                 IdentificacionComprador = f.Cliente.Identificacion,
                 TotalSinImpuestos = f.Subtotal,
-                TotalDescuento = 0, // TODO: Implementar si tu sistema maneja descuentos
+                TotalDescuento = 0,
                 Propina = 0,
                 ImporteTotal = f.Total,
                 Moneda = "DOLAR",
                 Pagos = new List<PagoSRI> {
-                    new PagoSRI { FormaPago = "01", Total = f.Total } // 01 = Sin utilización del sistema financiero
+                    new PagoSRI { FormaPago = "01", Total = f.Total }
                 }
             };
 
-            // --- Totales de Impuestos (Resumen) ---
-            // Aquí agrupamos por IVA. En este ejemplo asumimos todo al 15% (Código 4)
-            // Si tienes productos con IVA 0%, debes agregar lógica para agruparlos.
-            xml.InfoFactura.TotalConImpuestos.Add(new TotalImpuesto
-            {
-                Codigo = "2", // IVA
-                CodigoPorcentaje = "4", // 4 = 15% (Según tabla SRI vigente 2024/2025)
-                BaseImponible = f.Subtotal,
-                Valor = f.TotalIVA
-            });
+            // --- Totales de Impuestos ---
+            // Agrupar detalles por código de impuesto para el resumen
+            var impuestosAgrupados = f.Detalles
+                .GroupBy(d => d.Producto.TarifaIva)
+                .Select(g => new TotalImpuesto
+                {
+                    Codigo = "2", // IVA
+                    CodigoPorcentaje = g.Key.CodigoSRI,
+                    BaseImponible = g.Sum(x => x.Subtotal),
+                    Valor = g.Sum(x => x.Subtotal * (x.Producto.TarifaIva.Porcentaje / 100m)),
+                    Tarifa = g.Key.Porcentaje
+                }).ToList();
+
+            xml.InfoFactura.TotalConImpuestos = impuestosAgrupados;
+
 
             // --- Detalles ---
             foreach (var det in f.Detalles)
@@ -137,21 +141,21 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
                 var detalleXml = new DetalleSRI
                 {
                     CodigoPrincipal = det.Producto.CodigoPrincipal,
-                    Descripcion = det.Producto.Descripcion,
+                    Descripcion = det.Producto.Descripcion, // Usamos la descripción completa generada
                     Cantidad = det.Cantidad,
                     PrecioUnitario = det.PrecioUnitario,
                     Descuento = 0,
                     PrecioTotalSinImpuesto = det.Subtotal
                 };
 
-                // Impuesto individual por producto
+                // Impuesto individual
                 detalleXml.Impuestos.Add(new Impuesto
                 {
                     Codigo = "2", // IVA
-                    CodigoPorcentaje = "4", // 15% (Ajustar dinámicamente según el producto)
-                    Tarifa = 15,
+                    CodigoPorcentaje = det.Producto.TarifaIva.CodigoSRI,
+                    Tarifa = det.Producto.TarifaIva.Porcentaje,
                     BaseImponible = det.Subtotal,
-                    Valor = det.Subtotal * 0.15m
+                    Valor = det.Subtotal * (det.Producto.TarifaIva.Porcentaje / 100m)
                 });
 
                 xml.Detalles.Add(detalleXml);
@@ -160,24 +164,23 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
             return xml;
         }
 
-        private void FirmarXml(XmlDocument xmlDoc, string pathFirma, string password)
+        // MODIFICADO: Acepta byte[] en lugar de string path
+        private void FirmarXml(XmlDocument xmlDoc, byte[] firmaBytes, string password)
         {
-            // 1. Cargar certificado
-            // IMPORTANTE: En Linux/Docker puede requerir ajustes en X509KeyStorageFlags
-            if (!File.Exists(pathFirma)) throw new FileNotFoundException($"No se encontró la firma en: {pathFirma}");
-
-            var certificado = new X509Certificate2(pathFirma, password, X509KeyStorageFlags.Exportable);
+            // 1. Cargar certificado desde MEMORIA (bytes)
+            // MachineKeySet es vital para evitar errores de "Key not valid for use in specified state" en IIS/Azure
+            var certificado = new X509Certificate2(firmaBytes, password, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.MachineKeySet);
 
             // 2. Instanciar SignedXml
             SignedXml signedXml = new SignedXml(xmlDoc);
             signedXml.SigningKey = certificado.PrivateKey;
 
-            // 3. Crear Referencia (Firmar todo el documento)
+            // 3. Crear Referencia
             Reference reference = new Reference("");
             reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
             signedXml.AddReference(reference);
 
-            // 4. Agregar KeyInfo (Información del certificado público para que el SRI valide)
+            // 4. Agregar KeyInfo
             KeyInfo keyInfo = new KeyInfo();
             keyInfo.AddClause(new KeyInfoX509Data(certificado));
             signedXml.KeyInfo = keyInfo;
@@ -185,10 +188,8 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
             // 5. Calcular Firma
             signedXml.ComputeSignature();
 
-            // 6. Obtener la representación XML de la firma
+            // 6. Adjuntar
             XmlElement xmlDigitalSignature = signedXml.GetXml();
-
-            // 7. Adjuntar la firma al documento original
             xmlDoc.DocumentElement.AppendChild(xmlDoc.ImportNode(xmlDigitalSignature, true));
         }
     }

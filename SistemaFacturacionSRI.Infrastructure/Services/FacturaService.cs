@@ -1,11 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+// using Microsoft.Extensions.Configuration; // YA NO NECESITAMOS ESTO
 using System.Text;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Facturas;
 using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 using SistemaFacturacionSRI.Infrastructure.SRI.Services;
+using SistemaFacturacionSRI.Infrastructure.SRI.Services;
+using SistemaFacturacionSRI.Infrastructure.Helpers; // Para desencriptar la clave
 
 namespace SistemaFacturacionSRI.Infrastructure.Services
 {
@@ -15,7 +17,9 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
         private readonly FacturaElectronicaService _firmaService; // Servicio de Firma y XML
         private readonly SriSoapClient _sriClient;                // Servicio de Envío al SRI (Nuevo)
         private readonly IConfiguration _configuration;
+        private readonly FacturaElectronicaService _sriService;
 
+        // Eliminamos IConfiguration del constructor porque ya no leemos appsettings
         public FacturaService(
             AppDbContext context,
             FacturaElectronicaService firmaService,
@@ -35,10 +39,18 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
             try
             {
-                // =============================================================================
-                // PASO 1: VALIDACIONES Y CREACIÓN DE LA FACTURA (ESTADO PENDIENTE)
-                // =============================================================================
+                // --- 0. RECUPERAR CONFIGURACIÓN SRI DE LA BD ---
+                // Asumimos que solo hay un registro de configuración activo (o el primero)
+                var configEmpresa = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
 
+                if (configEmpresa == null)
+                    throw new Exception("No se ha configurado los datos de la empresa ni la firma electrónica en el sistema.");
+
+                if (configEmpresa.FirmaElectronica == null || string.IsNullOrEmpty(configEmpresa.ClaveFirma))
+                    throw new Exception("La firma electrónica no ha sido cargada en la configuración.");
+
+
+                // --- 1. VALIDACIONES Y CREACIÓN ---
                 var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
                 if (cliente == null) throw new Exception("Cliente no encontrado.");
 
@@ -60,7 +72,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                 foreach (var item in dto.Detalles)
                 {
-                    // IMPORTANTE: Usamos .Include para traer la TarifaIva, si no dará error nulo.
+                    // Incluimos TarifaIva para poder calcular impuestos
                     var producto = await _context.Productos
                         .Include(p => p.TarifaIva)
                         .FirstOrDefaultAsync(p => p.Id == item.ProductoId);
@@ -108,6 +120,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     // Verificar que tenga tarifa asignada, si no, asumir 0 para evitar crash
                     decimal porcentajeIva = producto.TarifaIva?.Porcentaje ?? 0m;
                     decimal ivaLinea = subtotalLinea * (porcentajeIva / 100m);
+                    decimal ivaLinea = subtotalLinea * (producto.TarifaIva.Porcentaje / 100m);
 
                     subtotalFactura += subtotalLinea;
                     totalIvaFactura += ivaLinea;
@@ -118,7 +131,9 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         ProductoId = item.ProductoId,
                         Cantidad = item.Cantidad,
                         PrecioUnitario = producto.PrecioUnitario,
-                        Subtotal = subtotalLinea
+                        Subtotal = subtotalLinea,
+                        // Nota: Es útil guardar una referencia del objeto producto para el mapeo XML posterior
+                        Producto = producto
                     });
                 }
 
@@ -127,16 +142,22 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 nuevaFactura.TotalIVA = totalIvaFactura;
                 nuevaFactura.Total = subtotalFactura + totalIvaFactura;
 
+                // Necesitamos el objeto Cliente completo para el XML
+                nuevaFactura.Cliente = cliente;
+
+                // Necesitamos el objeto Cliente completo para el XML
+                nuevaFactura.Cliente = cliente;
+
                 // =============================================================================
                 // PASO 3: GUARDADO PREVIO (NECESARIO PARA OBTENER EL ID/SECUENCIAL)
                 // =============================================================================
                 _context.Facturas.Add(nuevaFactura);
-                await _context.SaveChangesAsync(); // Aquí se genera nuevaFactura.Id
+                await _context.SaveChangesAsync();
 
-                // =============================================================================
-                // PASO 4: INTEGRACIÓN SRI (XML -> FIRMA -> ENVÍO)
-                // =============================================================================
+                // --- 4. INTEGRACIÓN SRI (Generación XML y Firma desde BD) ---
 
+                // Desencriptamos la clave guardada en BD
+                string claveFirmaDesencriptada = EncryptionHelper.Decrypt(configEmpresa.ClaveFirma);
                 // A. Obtener credenciales de firma
                 string rutaFirma = _configuration["FirmaElectronica:Ruta"];
                 string claveFirma = _configuration["FirmaElectronica:Clave"];
