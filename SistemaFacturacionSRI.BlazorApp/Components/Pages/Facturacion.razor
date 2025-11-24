@@ -372,6 +372,20 @@
 <div class="container-fluid mt-4">
     <div class="header-pv">
         <h3>Punto de Venta</h3>
+        @if (!string.IsNullOrEmpty(mensajeExito))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @mensajeExito
+                <button type="button" class="btn-close" @onclick="() => mensajeExito = null"></button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @mensajeError
+                <button type="button" class="btn-close" @onclick="() => mensajeError = null"></button>
+            </div>
+        }
         <p class="text-muted">Genera facturas electrónicas en tiempo real</p>
         @if (!string.IsNullOrWhiteSpace(facturaErrorMessage))
         {
@@ -665,6 +679,9 @@
     private List<Cliente>? listaClientes;
     private List<Producto>? listaProductos;
 
+    private string? mensajeExito;
+    private string? mensajeError;
+
     // ESTADO DE LA VENTA
     private int _clienteSeleccionadoId;
     private int clienteSeleccionadoId
@@ -835,15 +852,17 @@
                 carrito.Clear();
                 clienteSeleccionadoId = 0;
                 clienteActual = null;
-                // Deberíamos mostrar una alerta elegante o navegar, pero por ahora solo el console.
-                Console.WriteLine("Factura creada exitosamente.");
+                // Deberíamos mostrar una alerta elegante o navegar.
+                mensajeExito = "¡Factura generada, firmada y enviada al SRI exitosamente!";
+                mensajeError = null;
                 await LoadData(); // Recargar productos para actualizar el stock
             }
             else
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
                 facturaErrorMessage = ExtraerMensajeError(errorMsg);
-                Console.WriteLine($"Error: {facturaErrorMessage}");
+                mensajeError = $"Error al procesar: {errorMsg}";
+                mensajeExito = null;
             }
         }
         catch (Exception ex)

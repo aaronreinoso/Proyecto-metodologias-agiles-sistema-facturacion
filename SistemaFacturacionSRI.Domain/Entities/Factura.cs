@@ -39,5 +39,9 @@ namespace SistemaFacturacionSRI.Domain.Entities
         public decimal Total { get; set; }
 
         public virtual List<DetalleFactura> Detalles { get; set; } = new();
+
+        public string? EstadoSRI { get; set; } // "RECIBIDA", "AUTORIZADA", "DEVUELTA"
+        public DateTime? FechaAutorizacion { get; set; }
+        public string? MensajeErrorSRI { get; set; } // Para guardar por qué falló
     }
 }

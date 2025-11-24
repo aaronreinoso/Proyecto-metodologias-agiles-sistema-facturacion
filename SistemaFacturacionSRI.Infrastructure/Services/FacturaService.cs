@@ -1,38 +1,43 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration; // Necesario para leer appsettings
+using Microsoft.Extensions.Configuration;
 using System.Text;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Facturas;
 using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
-using SistemaFacturacionSRI.Infrastructure.SRI.Services; // Importar tu servicio SRI
+using SistemaFacturacionSRI.Infrastructure.SRI.Services;
 
 namespace SistemaFacturacionSRI.Infrastructure.Services
 {
     public class FacturaService : IFacturaService
     {
         private readonly AppDbContext _context;
-        private readonly FacturaElectronicaService _sriService; // Inyección del servicio SRI
-        private readonly IConfiguration _configuration;         // Para leer ruta y clave de firma
+        private readonly FacturaElectronicaService _firmaService; // Servicio de Firma y XML
+        private readonly SriSoapClient _sriClient;                // Servicio de Envío al SRI (Nuevo)
+        private readonly IConfiguration _configuration;
 
         public FacturaService(
             AppDbContext context,
-            FacturaElectronicaService sriService,
+            FacturaElectronicaService firmaService,
+            SriSoapClient sriClient,
             IConfiguration configuration)
         {
             _context = context;
-            _sriService = sriService;
+            _firmaService = firmaService;
+            _sriClient = sriClient;
             _configuration = configuration;
         }
 
         public async Task<Factura> CrearFacturaAsync(CreateFacturaDto dto)
         {
-            // USAR TRANSACCIÓN: Si falla el descuento de stock o la firma, no se guarda nada
+            // USAR TRANSACCIÓN: Todo o nada.
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
-                // --- 1. VALIDACIONES Y CREACIÓN INICIAL ---
+                // =============================================================================
+                // PASO 1: VALIDACIONES Y CREACIÓN DE LA FACTURA (ESTADO PENDIENTE)
+                // =============================================================================
 
                 var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
                 if (cliente == null) throw new Exception("Cliente no encontrado.");
@@ -41,24 +46,32 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 {
                     ClienteId = dto.ClienteId,
                     FechaEmision = DateTime.Now,
-                    Estado = "Pendiente",
+                    Estado = "Pendiente", // Estado interno
+                    EstadoSRI = "PENDIENTE", // Estado SRI inicial
                     Detalles = new List<DetalleFactura>()
                 };
 
                 decimal subtotalFactura = 0;
                 decimal totalIvaFactura = 0;
 
-                // --- 2. PROCESAR DETALLES Y STOCK (FIFO) ---
+                // =============================================================================
+                // PASO 2: PROCESAR DETALLES, LÓGICA FIFO Y CÁLCULOS
+                // =============================================================================
 
                 foreach (var item in dto.Detalles)
                 {
-                    var producto = await _context.Productos.FindAsync(item.ProductoId);
+                    // IMPORTANTE: Usamos .Include para traer la TarifaIva, si no dará error nulo.
+                    var producto = await _context.Productos
+                        .Include(p => p.TarifaIva)
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductoId);
+
                     if (producto == null) throw new Exception($"Producto ID {item.ProductoId} no existe.");
 
+                    // Validación de Stock Global
                     if (producto.Stock < item.Cantidad)
-                        throw new Exception($"Stock insuficiente para el producto: {producto.Descripcion}");
+                        throw new Exception($"Stock insuficiente para el producto: {producto.Descripcion}. Stock actual: {producto.Stock}");
 
-                    // Lógica FIFO
+                    // --- LÓGICA FIFO (First-In, First-Out) PARA LOTES ---
                     var lotesDisponibles = await _context.LotesProducto
                         .Where(l => l.ProductoId == item.ProductoId && l.CantidadActual > 0)
                         .OrderBy(l => l.FechaCaducidad.HasValue ? l.FechaCaducidad.Value : l.FechaRegistro)
@@ -69,28 +82,37 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     foreach (var lote in lotesDisponibles)
                     {
                         if (cantidadPorDescontar == 0) break;
+
                         int aTomar = Math.Min(cantidadPorDescontar, lote.CantidadActual);
 
+                        // Descontar del lote
                         lote.CantidadActual -= aTomar;
                         cantidadPorDescontar -= aTomar;
+
+                        // Marcar lote como modificado
                         _context.Entry(lote).State = EntityState.Modified;
                     }
 
                     if (cantidadPorDescontar > 0)
-                        throw new Exception($"Inconsistencia en lotes para el producto {producto.Descripcion}.");
+                    {
+                        // Esto es una salvaguarda de integridad
+                        throw new Exception($"Inconsistencia crítica: El stock global indicaba disponibilidad, pero no hay suficientes lotes para el producto {producto.Descripcion}.");
+                    }
 
                     // Actualizar Stock Global
                     producto.Stock -= item.Cantidad;
 
-                    // Cálculos
+                    // --- CÁLCULOS MONETARIOS ---
                     decimal subtotalLinea = item.Cantidad * producto.PrecioUnitario;
-                    // Cálculo de IVA: (Precio * Cantidad) * (Porcentaje / 100)
-                    decimal ivaLinea = subtotalLinea * (producto.TarifaIva.Porcentaje / 100m);
 
+                    // Verificar que tenga tarifa asignada, si no, asumir 0 para evitar crash
+                    decimal porcentajeIva = producto.TarifaIva?.Porcentaje ?? 0m;
+                    decimal ivaLinea = subtotalLinea * (porcentajeIva / 100m);
 
                     subtotalFactura += subtotalLinea;
                     totalIvaFactura += ivaLinea;
 
+                    // Agregar Detalle
                     nuevaFactura.Detalles.Add(new DetalleFactura
                     {
                         ProductoId = item.ProductoId,
@@ -100,36 +122,75 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     });
                 }
 
+                // Totales finales
                 nuevaFactura.Subtotal = subtotalFactura;
                 nuevaFactura.TotalIVA = totalIvaFactura;
                 nuevaFactura.Total = subtotalFactura + totalIvaFactura;
 
-                // --- 3. GUARDADO PREVIO (Para obtener el ID/Secuencial) ---
+                // =============================================================================
+                // PASO 3: GUARDADO PREVIO (NECESARIO PARA OBTENER EL ID/SECUENCIAL)
+                // =============================================================================
                 _context.Facturas.Add(nuevaFactura);
-                await _context.SaveChangesAsync(); // Aquí se genera el nuevaFactura.Id
+                await _context.SaveChangesAsync(); // Aquí se genera nuevaFactura.Id
 
-                // --- 4. INTEGRACIÓN SRI (Generación XML y Firma) ---
+                // =============================================================================
+                // PASO 4: INTEGRACIÓN SRI (XML -> FIRMA -> ENVÍO)
+                // =============================================================================
 
-                // Obtener configuración desde appsettings.json
+                // A. Obtener credenciales de firma
                 string rutaFirma = _configuration["FirmaElectronica:Ruta"];
                 string claveFirma = _configuration["FirmaElectronica:Clave"];
 
                 if (string.IsNullOrEmpty(rutaFirma) || string.IsNullOrEmpty(claveFirma))
-                    throw new Exception("No se ha configurado la firma electrónica en el sistema.");
+                    throw new Exception("Configuración de firma electrónica no encontrada.");
 
-                // Generar XML firmado (Esto devuelve bytes)
-                // Nota: El servicio SRI usa el nuevaFactura.Id que se acaba de generar para el secuencial
-                byte[] xmlBytes = _sriService.GenerarXmlFirmado(nuevaFactura, rutaFirma, claveFirma);
+                // B. Generar XML Firmado
+                // El servicio actualiza la entidad 'nuevaFactura' con la ClaveAcceso generada
+                byte[] xmlBytes = _firmaService.GenerarXmlFirmado(nuevaFactura, rutaFirma, claveFirma);
 
-                // Convertir bytes a string para guardar en BD
                 nuevaFactura.XmlGenerado = Encoding.UTF8.GetString(xmlBytes);
 
-                // El servicio _sriService ya actualizó nuevaFactura.ClaveAcceso internamente por referencia,
-                // pero aseguramos actualizando el estado de la entidad.
+                // C. Enviar al Web Service de RECEPCIÓN
+                string respuestaRecepcion = await _sriClient.EnviarRecepcionAsync(xmlBytes);
+
+                if (respuestaRecepcion.Contains("RECIBIDA"))
+                {
+                    nuevaFactura.EstadoSRI = "RECIBIDA";
+
+                    // Pequeña pausa para dar tiempo al SRI de procesar antes de autorizar
+                    await Task.Delay(1500);
+
+                    // D. Enviar al Web Service de AUTORIZACIÓN
+                    string respuestaAutorizacion = await _sriClient.EnviarAutorizacionAsync(nuevaFactura.ClaveAcceso);
+
+                    if (respuestaAutorizacion.Contains("AUTORIZADO"))
+                    {
+                        nuevaFactura.EstadoSRI = "AUTORIZADO";
+                        nuevaFactura.Estado = "Autorizada";
+                        nuevaFactura.FechaAutorizacion = DateTime.Now;
+                    }
+                    else
+                    {
+                        nuevaFactura.EstadoSRI = "RECHAZADA";
+                        nuevaFactura.Estado = "Rechazada";
+                        nuevaFactura.MensajeErrorSRI = "Verificar XML de respuesta en logs o correo.";
+                        // Opcional: Podrías guardar 'respuestaAutorizacion' en un log de la BD
+                    }
+                }
+                else
+                {
+                    nuevaFactura.EstadoSRI = "DEVUELTA";
+                    nuevaFactura.Estado = "Devuelta";
+                    nuevaFactura.MensajeErrorSRI = "Error en recepción (Firma inválida o XML mal formado).";
+                }
+
+                // =============================================================================
+                // PASO 5: ACTUALIZACIÓN FINAL Y COMMIT
+                // =============================================================================
+
                 _context.Facturas.Update(nuevaFactura);
                 await _context.SaveChangesAsync();
 
-                // --- 5. CONFIRMAR TRANSACCIÓN ---
                 await transaction.CommitAsync();
 
                 return nuevaFactura;
@@ -137,7 +198,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             catch (Exception)
             {
                 await transaction.RollbackAsync();
-                throw;
+                throw; // El controlador manejará el error y lo mostrará al usuario
             }
         }
     }

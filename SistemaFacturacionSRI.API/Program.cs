@@ -37,7 +37,11 @@ builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<ILoteProductoService, LoteProductoService>();
 builder.Services.AddScoped<IFacturaService, FacturaService>();
 
-
+// --- NUEVOS SERVICIOS DE FACTURACIÓN Y SRI ---
+builder.Services.AddScoped<IFacturaService, FacturaService>();
+builder.Services.AddScoped<FacturaElectronicaService>();
+builder.Services.AddScoped<ClaveAccesoService>();
+builder.Services.AddScoped<SriSoapClient>();
 
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(x =>
