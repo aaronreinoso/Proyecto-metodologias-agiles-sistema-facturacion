@@ -1,118 +1,134 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.API.DTOs.Configuracion;
 using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Helpers;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 using System.Security.Cryptography.X509Certificates;
+using SistemaFacturacionSRI.Domain.DTOs.Configuracion;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Administrador")] // Solo el admin puede tocar esto
     public class ConfiguracionController : ControllerBase
     {
         private readonly AppDbContext _context;
 
-        // ✅ CONSTRUCTOR CORREGIDO: Solo inyectamos el DbContext (Servicios)
         public ConfiguracionController(AppDbContext context)
         {
             _context = context;
         }
 
-        // POST: api/Configuracion/guardar
-        [HttpPost("guardar")]
-        public async Task<IActionResult> Guardar([FromForm] FirmaUploadDto dto)
+        [HttpGet]
+        public async Task<ActionResult<ConfiguracionInicioDto>> GetConfiguracion()
         {
-            // 1. Obtener la configuración existente o crear una nueva
             var config = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
-            if (config == null)
+            if (config == null) return NotFound();
+
+            return new ConfiguracionInicioDto
             {
-                config = new ConfiguracionSRI();
-                _context.ConfiguracionesSRI.Add(config);
-            }
+                Ruc = config.Ruc,
+                RazonSocial = config.RazonSocial,
+                NombreComercial = config.NombreComercial,
+                DireccionMatriz = config.DireccionMatriz,
+                DireccionEstablecimiento = config.DireccionEstablecimiento,
+                CodigoEstablecimiento = config.CodigoEstablecimiento,
+                CodigoPuntoEmision = config.CodigoPuntoEmision,
+                ObligadoContabilidad = config.ObligadoContabilidad,
+                ContribuyenteEspecial = config.ContribuyenteEspecial,
+                NombreArchivoFirma = config.NombreArchivo,
+                ClaveFirma = null
+            };
+        }
 
-            // 2. Actualizar los datos de texto (Información de la empresa)
-            config.Ruc = dto.Ruc;
-            config.RazonSocial = dto.RazonSocial;
-            config.NombreComercial = dto.NombreComercial;
-            config.DireccionMatriz = dto.DireccionMatriz;
-
-            // Si la dirección del establecimiento viene vacía, usamos la matriz
-            config.DireccionEstablecimiento = !string.IsNullOrEmpty(dto.DireccionEstablecimiento)
-                                              ? dto.DireccionEstablecimiento
-                                              : dto.DireccionMatriz;
-
-            config.CodigoEstablecimiento = dto.CodigoEstablecimiento;
-            config.CodigoPuntoEmision = dto.CodigoPuntoEmision;
-            config.ObligadoContabilidad = dto.ObligadoContabilidad;
-
-            // Si agregaste el campo "ContribuyenteEspecial" a tu entidad y DTO, descomenta esto:
-            // config.ContribuyenteEspecial = dto.ContribuyenteEspecial;
-
-            // 3. Procesar Firma Electrónica (Solo si el usuario subió un archivo nuevo)
-            if (dto.ArchivoP12 != null && dto.ArchivoP12.Length > 0)
-            {
-                // Si sube archivo, la clave es OBLIGATORIA
-                if (string.IsNullOrEmpty(dto.ClaveFirma))
-                {
-                    return BadRequest("Para actualizar la firma, es obligatorio ingresar la contraseña.");
-                }
-
-                using var ms = new MemoryStream();
-                await dto.ArchivoP12.CopyToAsync(ms);
-                var fileBytes = ms.ToArray();
-
-                // VALIDACIÓN DE SEGURIDAD: Intentar abrir el certificado
-                try
-                {
-                    // Esto lanzará una excepción si la clave es incorrecta o el archivo está corrupto
-                    // Usamos X509KeyStorageFlags.MachineKeySet para evitar problemas de permisos en algunos servidores
-                    new X509Certificate2(fileBytes, dto.ClaveFirma, X509KeyStorageFlags.MachineKeySet);
-
-                    // Si pasamos la prueba, guardamos los datos sensibles
-                    config.FirmaElectronica = fileBytes;
-                    config.ClaveFirma = EncryptionHelper.Encrypt(dto.ClaveFirma); // Guardamos encriptada
-                    config.NombreArchivo = dto.ArchivoP12.FileName;
-                    config.FechaSubida = DateTime.Now;
-                }
-                catch (Exception)
-                {
-                    return BadRequest("La contraseña de la firma es incorrecta o el archivo .p12 no es válido.");
-                }
-            }
-
-            // 4. Guardar cambios en la Base de Datos
+        [HttpPost]
+        public async Task<IActionResult> GuardarConfiguracion([FromForm] FirmaUploadDTO dto)
+        {
             try
             {
+                // 1. Validar archivo de firma (Si se subió uno nuevo)
+                byte[]? firmaBytes = null;
+
+                if (dto.ArchivoFirma != null)
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        await dto.ArchivoFirma.CopyToAsync(ms);
+                        firmaBytes = ms.ToArray();
+                    }
+
+                    // Validar contraseña SOLO si el usuario ingresó una
+                    if (!string.IsNullOrEmpty(dto.ClaveFirma))
+                    {
+                        try
+                        {
+                            var cert = new X509Certificate2(
+                                firmaBytes,
+                                dto.ClaveFirma,
+                                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+                        }
+                        catch (System.Security.Cryptography.CryptographicException)
+                        {
+                            return BadRequest("La contraseña de la firma electrónica es INCORRECTA.");
+                        }
+                        catch (Exception ex)
+                        {
+                            return BadRequest($"El archivo de firma parece dañado: {ex.Message}");
+                        }
+                    }
+                }
+
+                // 2. Buscar o Crear Configuración
+                var config = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
+                bool esNuevaConfig = (config == null);
+
+                if (esNuevaConfig) config = new ConfiguracionSRI();
+
+                // 3. Actualizar Datos Básicos
+                config.Ruc = dto.Ruc;
+                config.RazonSocial = dto.RazonSocial;
+                config.NombreComercial = dto.NombreComercial;
+                config.DireccionMatriz = dto.DireccionMatriz;
+                config.DireccionEstablecimiento = dto.DireccionEstablecimiento;
+                config.CodigoEstablecimiento = dto.CodigoEstablecimiento;
+                config.CodigoPuntoEmision = dto.CodigoPuntoEmision;
+                config.ObligadoContabilidad = dto.ObligadoContabilidad;
+                config.ContribuyenteEspecial = dto.ContribuyenteEspecial;
+
+                // 4. Lógica de Clave
+                if (!string.IsNullOrEmpty(dto.ClaveFirma))
+                {
+                    config.ClaveFirma = EncryptionHelper.Encrypt(dto.ClaveFirma);
+                }
+                else if (esNuevaConfig)
+                {
+                    return BadRequest("La contraseña de la firma es obligatoria la primera vez.");
+                }
+
+                // 5. Lógica de Archivo
+                if (firmaBytes != null)
+                {
+                    config.FirmaElectronica = firmaBytes;
+                    config.NombreArchivo = dto.ArchivoFirma!.FileName;
+                    config.FechaSubida = DateTime.Now;
+                }
+                else if (esNuevaConfig)
+                {
+                    return BadRequest("Debe subir el archivo de firma electrónica (.p12) la primera vez.");
+                }
+
+                if (esNuevaConfig) _context.ConfiguracionesSRI.Add(config);
+                else _context.ConfiguracionesSRI.Update(config);
+
                 await _context.SaveChangesAsync();
-                return Ok(new { mensaje = "Configuración guardada correctamente" });
+
+                return Ok(new { message = "Configuración guardada correctamente." });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al guardar: {ex.Message}");
+                return StatusCode(500, $"Error interno: {ex.Message}");
             }
-        }
-
-        // GET: api/Configuracion
-        [HttpGet]
-        public async Task<ActionResult<ConfiguracionSRI>> GetConfiguracion()
-        {
-            var config = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
-
-            if (config == null)
-            {
-                // Retornamos un objeto vacío para que el formulario no falle al cargar
-                return Ok(new ConfiguracionSRI());
-            }
-
-            // 🛡️ SEGURIDAD: Limpiamos datos sensibles antes de enviarlos al Frontend
-            config.ClaveFirma = "";
-            config.FirmaElectronica = null;
-
-            return Ok(config);
         }
     }
 }

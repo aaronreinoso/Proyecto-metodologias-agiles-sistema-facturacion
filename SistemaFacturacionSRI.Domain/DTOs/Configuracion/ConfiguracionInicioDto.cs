@@ -16,11 +16,18 @@ namespace SistemaFacturacionSRI.Domain.DTOs.Configuracion
         public string DireccionMatriz { get; set; } = "";
 
         public string? DireccionEstablecimiento { get; set; }
+
         public string CodigoEstablecimiento { get; set; } = "001";
+
         public string CodigoPuntoEmision { get; set; } = "001";
+
         public bool ObligadoContabilidad { get; set; }
 
-        // La clave viaja como texto, así que puede estar aquí
+        // --- CAMPOS QUE FALTABAN ---
+        public string? ContribuyenteEspecial { get; set; } // Número de resolución
+
+        public string? NombreArchivoFirma { get; set; }    // Para que el usuario sepa que ya subió una firma (ej: "firma.p12")
+
         public string? ClaveFirma { get; set; }
     }
 }

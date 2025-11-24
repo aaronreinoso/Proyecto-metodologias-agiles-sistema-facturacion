@@ -9,158 +9,27 @@
 <PageTitle>Configuración SRI</PageTitle>
 
 <style>
-    /* ------------------------------------------- */
-    /* ESTILOS BASE Y ESTRUCTURA (Consistente) */
-    /* ------------------------------------------- */
-    .container {
-        max-width: 1100px;
-        margin: 60px auto;
-        padding: 0;
-    }
-
-    .config-card {
-        background: #ffffff;
-        border-radius: 20px; /* Un poco más grande */
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-    }
-
-    .config-card-header {
-        background-color: #f9fafb;
-        padding: 25px 30px;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-        .config-card-header h4 {
-            font-weight: 700;
-            color: #0058ff; /* Título principal en azul */
-            font-size: 1.5rem;
-        }
-
-    .config-card-body {
-        padding: 30px;
-    }
-
-    .text-muted {
-        color: #6b7280;
-    }
-
-    /* ------------------------------------------- */
-    /* FORMULARIOS Y LABELS */
-    /* ------------------------------------------- */
-    label {
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 6px;
-        display: block;
-    }
-
-    .form-control, .form-select, .form-check-input {
-        padding: 12px 16px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        transition: border-color 0.2s ease;
-        width: 100%;
-    }
-
-        .form-control:focus, .form-select:focus {
-            border-color: #0058ff;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
-        }
-
-    .validation-message {
-        color: #ef4444;
-        font-size: 0.9em;
-        display: block;
-        margin-top: 5px;
-    }
-
-    .text-secondary-title {
-        color: #4b5563; /* Gris oscuro para subtítulos */
-        font-weight: 700;
-        font-size: 1.2rem;
-        border-bottom: 1px dashed #e5e7eb;
-        padding-bottom: 8px;
-        margin-bottom: 20px;
-    }
-
-    /* ------------------------------------------- */
-    /* SECCIONES Y DIVISORES */
-    /* ------------------------------------------- */
-    .row-divider {
-        border-right: 1px solid #e5e7eb;
-    }
-
-    /* Checkbox personalizado */
-    .form-check {
-        padding-left: 0;
-    }
-
-    .form-check-label {
-        margin-left: 10px;
-        cursor: pointer;
-    }
-
-    /* ------------------------------------------- */
-    /* FIRMA ELECTRÓNICA */
-    /* ------------------------------------------- */
-    .file-drop-area {
-        border: 2px dashed #93c5fd !important; /* Azul más claro */
-        background-color: #f7faff;
-        border-radius: 12px;
-        padding: 20px;
-    }
-
-    /* Estilos para el InputFile dentro del área */
-    .input-file-custom {
-        padding: 8px 10px;
-        border-radius: 8px;
-        border: 1px solid #c7d2fe;
-        background-color: #ffffff;
-    }
-
-    /* Mostrar info de archivo cargado */
-    .alert-firma-ok {
-        background-color: #d1fae5;
-        color: #065f46;
-        border-color: #6ee7b7;
-    }
-
-    .alert-firma-warning {
-        background-color: #fef3c7;
-        color: #92400e;
-        border-color: #fcd34d;
-    }
-
-    .alert-info {
-        background-color: #e0f2fe;
-        color: #0c4a6e;
-    }
-
-    /* ------------------------------------------- */
-    /* BOTÓN PRINCIPAL */
-    /* ------------------------------------------- */
-    .btn-success {
-        /* Estilo verde degradado (Guardar) */
-        background: linear-gradient(135deg, #10b981, #34d399);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        padding: 12px 30px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
-        transition: all 0.2s ease;
-    }
-
-        .btn-success:disabled {
-            opacity: 0.6;
-            box-shadow: none;
-        }
-
+    .container { max-width: 1100px; margin: 60px auto; padding: 0; }
+    .config-card { background: #ffffff; border-radius: 20px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06); border: 1px solid #e5e7eb; overflow: hidden; }
+    .config-card-header { background-color: #f9fafb; padding: 25px 30px; border-bottom: 1px solid #e5e7eb; }
+    .config-card-header h4 { font-weight: 700; color: #0058ff; font-size: 1.5rem; }
+    .config-card-body { padding: 30px; }
+    .text-muted { color: #6b7280; }
+    label { font-weight: 600; color: #333; margin-bottom: 6px; display: block; }
+    .form-control, .form-select, .form-check-input { padding: 12px 16px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); transition: border-color 0.2s ease; width: 100%; }
+    .form-control:focus, .form-select:focus { border-color: #0058ff; outline: none; box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1); }
+    .validation-message { color: #ef4444; font-size: 0.9em; display: block; margin-top: 5px; }
+    .text-secondary-title { color: #4b5563; font-weight: 700; font-size: 1.2rem; border-bottom: 1px dashed #e5e7eb; padding-bottom: 8px; margin-bottom: 20px; }
+    .row-divider { border-right: 1px solid #e5e7eb; }
+    .form-check { padding-left: 0; }
+    .form-check-label { margin-left: 10px; cursor: pointer; }
+    .file-drop-area { border: 2px dashed #93c5fd !important; background-color: #f7faff; border-radius: 12px; padding: 20px; }
+    .input-file-custom { padding: 8px 10px; border-radius: 8px; border: 1px solid #c7d2fe; background-color: #ffffff; }
+    .alert-firma-ok { background-color: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+    .alert-firma-warning { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
+    .alert-info { background-color: #e0f2fe; color: #0c4a6e; }
+    .btn-success { background: linear-gradient(135deg, #10b981, #34d399); color: white; border: none; border-radius: 12px; padding: 12px 30px; font-size: 1.1rem; font-weight: 700; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4); transition: all 0.2s ease; }
+    .btn-success:disabled { opacity: 0.6; box-shadow: none; }
 </style>
 
 <AuthorizeView Roles="Administrador">
@@ -203,6 +72,11 @@
                                     <InputText @bind-Value="modelo.DireccionMatriz" class="form-control" />
                                     <ValidationMessage For="@(() => modelo.DireccionMatriz)" />
                                 </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Nro. Resolución (Contribuyente Especial)</label>
+                                    <InputText @bind-Value="modelo.ContribuyenteEspecial" class="form-control" placeholder="Opcional" />
+                                </div>
 
                                 <label class="form-label mb-2">Códigos de Emisión</label>
                                 <div class="row">
@@ -215,7 +89,6 @@
                                 </div>
                                 <ValidationMessage For="@(() => modelo.CodigoEstablecimiento)" />
                                 <ValidationMessage For="@(() => modelo.CodigoPuntoEmision)" />
-
 
                                 <div class="form-check mt-3">
                                     <InputCheckbox @bind-Value="modelo.ObligadoContabilidad" class="form-check-input" id="chkObligado" />
@@ -233,8 +106,8 @@
                                     </div>
                                     <small class="d-block mt-2 text-muted">
                                         @(string.IsNullOrEmpty(nombreArchivoLocal)
-                                                                                ? "Seleccione un archivo solo si desea actualizar la firma actual."
-                                                                                : $"📎 Archivo seleccionado: {nombreArchivoLocal}")
+                                            ? "Seleccione un archivo solo si desea actualizar la firma actual."
+                                            : $"📎 Archivo seleccionado: {nombreArchivoLocal}")
                                     </small>
                                 </div>
 
@@ -244,13 +117,13 @@
                                     <ValidationMessage For="@(() => modelo.ClaveFirma)" />
                                 </div>
 
-                                @if (configGuardada != null && !string.IsNullOrEmpty(configGuardada.NombreArchivo))
+                                @if (!string.IsNullOrEmpty(modelo.NombreArchivoFirma))
                                 {
                                     <div class="alert alert-firma-ok py-2 d-flex align-items-center">
                                         <span class="me-2">✅</span>
                                         <div>
                                             <small class="d-block fw-bold">Firma actual cargada:</small>
-                                            <small>@configGuardada.NombreArchivo (Subida el @(configGuardada.FechaSubida?.ToShortDateString() ?? "sin fecha"))</small>
+                                            <small>@modelo.NombreArchivoFirma</small>
                                         </div>
                                     </div>
                                 }
@@ -293,12 +166,9 @@
 </AuthorizeView>
 
 @code {
-    // ✅ CORREGIDO: Se declara la variable 'modelo' con el tipo correcto
+    // Modelo principal enlazado al formulario
     private ConfiguracionInicioDto modelo = new();
-
-    // Entidad para mostrar info de solo lectura (lo que viene de la BD)
-    private ConfiguracionSRI? configGuardada;
-
+    
     private IBrowserFile? archivoSeleccionado;
     private string nombreArchivoLocal = "";
     private string mensaje = "";
@@ -314,26 +184,20 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ConfiguracionSRI>("api/configuracion");
+            // CAMBIO: Ahora esperamos el DTO, no la entidad directa
+            var response = await Http.GetFromJsonAsync<ConfiguracionInicioDto>("api/configuracion");
+            
             if (response != null)
             {
-                configGuardada = response;
-
-                // Mapear datos de la BD al DTO del formulario
-                modelo.Ruc = response.Ruc;
-                modelo.RazonSocial = response.RazonSocial;
-                modelo.NombreComercial = response.NombreComercial;
-                modelo.DireccionMatriz = response.DireccionMatriz;
-                modelo.DireccionEstablecimiento = response.DireccionEstablecimiento;
-                modelo.CodigoEstablecimiento = response.CodigoEstablecimiento;
-                modelo.CodigoPuntoEmision = response.CodigoPuntoEmision;
-                modelo.ObligadoContabilidad = response.ObligadoContabilidad;
-
-                // La clave no se carga por seguridad
+                // Al recibir el DTO, lo asignamos directamente al modelo del formulario
+                modelo = response;
+                // Limpiamos la clave por seguridad para que el campo aparezca vacío
+                modelo.ClaveFirma = ""; 
             }
         }
         catch (Exception ex)
         {
+            // El 404 es normal la primera vez
             Console.WriteLine($"Info: No hay configuración previa o error al cargar: {ex.Message}");
         }
     }
@@ -353,7 +217,7 @@
         {
             using var content = new MultipartFormDataContent();
 
-            // 1. Enviamos los datos del DTO ConfiguracionInicioDto como campos de formulario
+            // 1. Enviamos los datos de texto del formulario
             content.Add(new StringContent(modelo.Ruc ?? ""), nameof(modelo.Ruc));
             content.Add(new StringContent(modelo.RazonSocial ?? ""), nameof(modelo.RazonSocial));
             content.Add(new StringContent(modelo.DireccionMatriz ?? ""), nameof(modelo.DireccionMatriz));
@@ -361,18 +225,25 @@
             content.Add(new StringContent(modelo.CodigoPuntoEmision ?? "001"), nameof(modelo.CodigoPuntoEmision));
             content.Add(new StringContent(modelo.ObligadoContabilidad.ToString()), nameof(modelo.ObligadoContabilidad));
 
-            if (!string.IsNullOrEmpty(modelo.NombreComercial))
-                content.Add(new StringContent(modelo.NombreComercial), nameof(modelo.NombreComercial));
+            // Campos opcionales (validamos nulos para evitar errores)
+            content.Add(new StringContent(modelo.NombreComercial ?? ""), nameof(modelo.NombreComercial));
+            
+            // Corrección: Validación de nulos para evitar excepciones si ambos son nulos
+            var direccionEst = modelo.DireccionEstablecimiento ?? modelo.DireccionMatriz ?? "";
+            content.Add(new StringContent(direccionEst), nameof(modelo.DireccionEstablecimiento));
+            
+            content.Add(new StringContent(modelo.ContribuyenteEspecial ?? ""), nameof(modelo.ContribuyenteEspecial));
 
-            // Nota: DireccionEstablecimiento no se utiliza en el formulario actual, pero se incluye por si se añade más tarde.
-            // Si el campo DireccionEstablecimiento se añade al formulario, debe ser bind-Value,
-            // pero si no se usa en el modelo, se envía un valor vacío para evitar nulls.
-            content.Add(new StringContent(modelo.DireccionEstablecimiento ?? modelo.DireccionMatriz), nameof(modelo.DireccionEstablecimiento));
-
+            // Solo enviamos la clave si el usuario escribió algo
+            if (!string.IsNullOrEmpty(modelo.ClaveFirma))
+            {
+                content.Add(new StringContent(modelo.ClaveFirma), nameof(modelo.ClaveFirma));
+            }
 
             // 2. Gestión del Archivo (Firma)
             if (archivoSeleccionado != null)
             {
+                // Validación frontend: Si sube archivo, la clave es obligatoria
                 if (string.IsNullOrEmpty(modelo.ClaveFirma))
                 {
                     MostrarMensaje("⚠️ Debe ingresar la contraseña para la nueva firma.", "alert-danger");
@@ -383,28 +254,28 @@
                 var fileContent = new StreamContent(archivoSeleccionado.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024));
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/x-pkcs12");
 
-                // El nombre "ArchivoP12" debe coincidir con la propiedad en el DTO de la API
-                content.Add(fileContent, "ArchivoP12", archivoSeleccionado.Name);
-
-                // Enviamos la clave
-                content.Add(new StringContent(modelo.ClaveFirma), "ClaveFirma");
+                // IMPORTANTE: El nombre del campo debe ser "ArchivoFirma" para coincidir con el DTO del backend
+                content.Add(fileContent, "ArchivoFirma", archivoSeleccionado.Name);
             }
 
-            // 3. Enviar al controlador
-            var response = await Http.PostAsync("api/configuracion/guardar", content);
+            // 3. Enviar al controlador (Ruta corregida: "api/configuracion")
+            var response = await Http.PostAsync("api/configuracion", content);
 
             if (response.IsSuccessStatusCode)
             {
                 MostrarMensaje("✅ Configuración guardada correctamente.", "alert-success");
-                modelo.ClaveFirma = ""; // Limpiar clave
+                modelo.ClaveFirma = ""; // Limpiamos la clave por seguridad
                 archivoSeleccionado = null;
                 nombreArchivoLocal = "";
-                await CargarDatosExistentes();
+                
+                // Recargamos para ver los datos actualizados (ej: fecha subida)
+                await CargarDatosExistentes(); 
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                MostrarMensaje($"❌ Error: {error}", "alert-danger");
+                // Limpiamos el mensaje de error si viene en formato JSON
+                MostrarMensaje($"❌ Error: {error.Trim('"')}", "alert-danger");
             }
         }
         catch (Exception ex)
