@@ -16,43 +16,51 @@
     .container {
         max-width: 1200px;
         margin: 40px auto;
-        padding: 20px;
+        padding: 48px; /* Aumentado padding para consistencia */
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.7);
     }
 
     .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        margin-bottom: 28px; /* Reducido para consistencia */
     }
 
         .header h1 {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
-            color: #111827;
+            color: #1a1a1a;
             margin: 0;
         }
 
     .btn-add {
-        background-color: #2563eb;
+        /* Usando el estilo btn-primary para consistencia visual */
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
         color: white;
         border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
+        padding: 10px 18px;
+        border-radius: 12px;
         font-weight: 600;
         cursor: pointer;
-        transition: background 0.2s;
+        box-shadow: 0 2px 6px rgba(0, 85, 255, 0.25);
+        transition: all 0.2s ease;
     }
 
         .btn-add:hover {
-            background-color: #1d4ed8;
+            opacity: 0.9;
         }
 
     .table-container {
         background: white;
-        border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 16px; /* Aumentado para consistencia */
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* Sombra suave */
         overflow: hidden;
+        border: 1px solid #e5e7eb;
     }
 
     table {
@@ -63,46 +71,55 @@
 
     th {
         background-color: #f9fafb;
-        padding: 12px 24px;
-        font-size: 12px;
-        font-weight: 600;
+        padding: 15px 24px; /* Aumentado padding para consistencia */
+        font-size: 13px;
+        font-weight: 700;
         text-transform: uppercase;
-        color: #6b7280;
+        color: #374151; /* Gris oscuro para headers */
         letter-spacing: 0.05em;
+        border-bottom: 2px solid #e5e7eb;
     }
 
     td {
         padding: 16px 24px;
-        border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid #f3f4f6; /* Línea más clara */
         font-size: 14px;
         color: #374151;
+        transition: background-color 0.2s;
     }
 
     tr:last-child td {
         border-bottom: none;
     }
 
+    tr:hover td {
+        background-color: #f5f8ff; /* Estilo hover suave */
+    }
+
     .badge {
+        display: inline-block;
         padding: 4px 10px;
-        border-radius: 9999px;
+        border-radius: 8px; /* Redondeado suave */
         font-size: 12px;
         font-weight: 600;
     }
 
+    /* Colores consistentes */
     .bg-blue {
         background-color: #dbeafe;
         color: #1e40af;
     }
-
+    /* RUC/Cédula */
     .bg-green {
         background-color: #dcfce7;
         color: #166534;
     }
-
+    /* Cédula */
     .bg-purple {
         background-color: #f3e8ff;
         color: #6b21a8;
     }
+    /* Pasaporte */
 
     .action-btn {
         background: none;
@@ -110,14 +127,19 @@
         cursor: pointer;
         padding: 4px;
         margin-right: 8px;
-        font-size: 16px;
-        transition: transform 0.1s;
+        font-size: 18px; /* Íconos más grandes */
+        opacity: 0.7;
+        transition: opacity 0.1s, transform 0.1s;
     }
 
         .action-btn:hover {
+            opacity: 1;
             transform: scale(1.1);
         }
 
+    /* ------------------------------------------- */
+    /* MODAL (Reutilizando estilos de productos) */
+    /* ------------------------------------------- */
     .modal-backdrop {
         position: fixed;
         top: 0;
@@ -130,19 +152,32 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        animation: fadeIn 0.2s ease-out;
     }
 
     .modal-content {
         background: white;
         width: 100%;
         max-width: 600px;
-        border-radius: 16px;
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        border-radius: 18px; /* Más redondeado */
+        box-shadow: 0 12px 40px rgba(0,0,0,0.12);
         padding: 30px;
-        position: relative;
-        animation: slideUp 0.3s ease-out;
     }
+
+    /* Estilos de formulario consistentes */
+    input, select, textarea, .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        font-size: 14px;
+        transition: border-color 0.15s;
+    }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #0058ff;
+            box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
+        }
 
     .form-group {
         margin-bottom: 16px;
@@ -154,45 +189,42 @@
         gap: 16px;
     }
 
-    label {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 6px;
-    }
-
-    input, select {
-        width: 100%;
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #d1d5db;
-        font-size: 14px;
-        transition: border-color 0.15s;
-    }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-    .helper-text {
-        font-size: 12px;
-        color: #6b7280;
-        margin-top: 4px;
-    }
-
     .link-btn {
-        background: none;
-        border: none;
-        color: #2563eb;
-        font-size: 13px;
-        text-decoration: underline;
+        color: #0058ff;
+        font-weight: 600;
+        text-decoration: none;
         cursor: pointer;
-        padding: 0;
-        margin-top: 5px;
-        display: inline-block;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .btn-secondary {
+        /* Gris claro (Cancelar) */
+        background: #f1f5f9;
+        color: #111827;
+        border: 1px solid #e2e8f0;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-save {
+        /* Azul degradado (Guardar) */
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
+        color: white;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
     }
 
     .error-box {
@@ -206,75 +238,6 @@
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-
-    .modal-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        margin-top: 24px;
-        padding-top: 20px;
-        border-top: 1px solid #f3f4f6;
-    }
-
-    .btn-secondary {
-        background: white;
-        border: 1px solid #d1d5db;
-        color: #374151;
-        padding: 10px 16px;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-    }
-
-    .btn-save {
-        background: #2563eb;
-        border: none;
-        color: white;
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-    }
-
-        .btn-save:disabled {
-            background-color: #93c5fd;
-            cursor: not-allowed;
-        }
-
-    /* CLASES PARA EL ROJO AUTOMÁTICO */
-    input.invalid, select.invalid {
-        border-color: #dc2626;
-        background-color: #fef2f2;
-    }
-
-    .validation-message {
-        color: #dc2626;
-        font-size: 12px;
-        margin-top: 4px;
-        font-weight: 500;
-    }
-
-    @@keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @@keyframes slideUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
     }
 </style>
 
@@ -296,7 +259,7 @@
     else
     {
         <div class="table-container">
-            <table>
+            <table class="styled-table">
                 <thead>
                     <tr>
                         <th>Identificación</th>
@@ -309,7 +272,7 @@
                 <tbody>
                     @if (clientes.Count == 0)
                     {
-                        <tr><td colspan="5" style="text-align: center; padding: 30px; color: #9ca3af;">No hay clientes registrados.</td></tr>
+                        <tr><td colspan="5" style="text-align: center; padding: 30px; color: #9ca3af; border-bottom: none;">No hay clientes registrados.</td></tr>
                     }
                     @foreach (var cliente in clientes)
                     {
@@ -344,8 +307,8 @@
     <div class="modal-backdrop">
         <div class="modal-content">
             <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                <h2 style="margin:0; font-size:20px;">@(currentCliente.Id == 0 ? "Registrar Cliente" : "Editar Cliente")</h2>
-                <button @onclick="CloseForm" style="background:none; border:none; font-size:24px; cursor:pointer; color:#9ca3af;">×</button>
+                <h2 style="margin:0; font-size:24px; font-weight:700;">@(currentCliente.Id == 0 ? "Registrar Cliente" : "Editar Cliente")</h2>
+                <button @onclick="CloseForm" class="close-btn">×</button>
             </div>
 
             @if (!string.IsNullOrEmpty(serverValidationError))
@@ -360,8 +323,8 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Tipo Identificación</label>
-                        <InputSelect @bind-Value="currentCliente.TipoIdentificacion" class="form-control">
+                        <label>Tipo Identificación (*)</label>
+                        <InputSelect @bind-Value="currentCliente.TipoIdentificacion" class="form-control" @onchange="OnTipoIdentificacionChange">
                             @foreach (var tipo in Enum.GetValues(typeof(TipoIdentificacion)))
                             {
                                 <option value="@tipo">@tipo</option>
@@ -369,8 +332,7 @@
                         </InputSelect>
                     </div>
                     <div class="form-group">
-                        <label>Número</label>
-
+                        <label>Número (*)</label>
                         <InputText @bind-Value="currentCliente.Identificacion"
                                    class="form-control"
                                    maxlength="@GetMaxLength(currentCliente.TipoIdentificacion)"
@@ -382,20 +344,25 @@
                     </div>
                 </div>
 
-                <div style="text-align: right; margin-top: -15px; margin-bottom: 15px;">
+               @*  <div style="text-align: right; margin-top: -15px; margin-bottom: 15px;">
                     <button type="button" class="link-btn" @onclick="SetConsumidorFinal">Usar Consumidor Final</button>
                 </div>
-
+                *@
                 <div class="form-group">
-                    <label>Nombre Completo</label>
-                    <InputText @bind-Value="currentCliente.NombreCompleto" style="text-transform:uppercase;" />
+                    <label>Nombre Completo (*)</label>
+                    <InputText @bind-Value="currentCliente.NombreCompleto" class="form-control" style="text-transform:uppercase;" />
                     <ValidationMessage For="@(() => currentCliente.NombreCompleto)" />
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>País</label>
-                        <InputText @bind-Value="currentCliente.Pais" />
+                        <label>País @(currentCliente.TipoIdentificacion == TipoIdentificacion.Pasaporte ? "(*)" : "")</label>
+
+                        <InputText @bind-Value="currentCliente.Pais"
+                                   class="form-control"
+                                   disabled="@(currentCliente.TipoIdentificacion != TipoIdentificacion.Pasaporte)" />
+
+                        <ValidationMessage For="@(() => currentCliente.Pais)" />
                     </div>
                     <div class="form-group">
                         <label>Teléfono</label>
@@ -407,14 +374,15 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Correo Electrónico</label>
-                    <InputText @bind-Value="currentCliente.Email" placeholder="cliente@ejemplo.com" />
+                    <label>Correo Electrónico (*)</label>
+                    <InputText @bind-Value="currentCliente.Email" class="form-control" placeholder="cliente@ejemplo.com" />
                     <ValidationMessage For="@(() => currentCliente.Email)" />
                 </div>
 
                 <div class="form-group">
                     <label>Dirección</label>
-                    <InputTextArea @bind-Value="currentCliente.Direccion" rows="2" />
+                    <InputTextArea @bind-Value="currentCliente.Direccion" rows="2" class="form-control" />
+                    <ValidationMessage For="@(() => currentCliente.Direccion)" />
                 </div>
 
                 <div class="modal-footer">
@@ -437,14 +405,13 @@
             <p style="color: #6b7280; margin-bottom: 24px;">Esta acción no se puede deshacer.</p>
             <div style="display: flex; justify-content: center; gap: 12px;">
                 <button class="btn-secondary" @onclick="() => showDeleteModal = false">Cancelar</button>
-                <button class="btn-save" style="background-color: #ef4444;" @onclick="HandleDelete" disabled="@isSubmitting">Confirmar</button>
+                <button class="btn-save" style="background: linear-gradient(135deg, #dc2626, #ef4444);" @onclick="HandleDelete" disabled="@isSubmitting">Confirmar</button>
             </div>
         </div>
     </div>
 }
 
 @code {
-    // ... (Tus variables igual que antes) ...
     private List<Cliente>? clientes;
     private string? errorMessage;
     private string? serverValidationError;
@@ -456,19 +423,18 @@
 
     protected override async Task OnInitializedAsync() => await LoadClientes();
 
-    // ... (Método LoadClientes igual que antes) ...
     private async Task LoadClientes()
-    { /* ... tu código ... */
+    {
         try { clientes = await Http.GetFromJsonAsync<List<Cliente>>("api/clientes"); errorMessage = null; }
         catch (Exception ex) { errorMessage = $"Error técnico: {ex.Message}"; }
     }
 
-    // ... (Método OpenForm igual que antes) ...
     private async Task OpenForm(int id)
     {
         serverValidationError = null;
         if (id == 0)
         {
+            // Inicialización por defecto: Cédula y Ecuador
             currentCliente = new UpdateCliente { Id = 0, TipoIdentificacion = TipoIdentificacion.Cedula, Pais = "Ecuador" };
         }
         else
@@ -483,12 +449,40 @@
         showFormModal = true;
     }
 
+    // --- NUEVO: Manejo de cambio de Identificación ---
+    private void OnTipoIdentificacionChange(ChangeEventArgs e)
+    {
+        // Esto es necesario para que Blazor actualice el enum en currentCliente
+        if (Enum.TryParse<TipoIdentificacion>(e.Value?.ToString(), out var nuevoTipo))
+        {
+            currentCliente.TipoIdentificacion = nuevoTipo;
+
+            if (nuevoTipo == TipoIdentificacion.Pasaporte)
+            {
+                // Si es pasaporte, el país es editable y puede ser cualquier valor
+                if (currentCliente.Pais == "Ecuador")
+                {
+                    currentCliente.Pais = ""; // Borrar "Ecuador" para permitir al usuario ingresar otro país
+                }
+            }
+            else
+            {
+                // Si no es pasaporte, el país es fijo
+                currentCliente.Pais = "Ecuador";
+            }
+            // Limpiar la identificación para forzar nueva entrada si el tipo cambia
+            currentCliente.Identificacion = "";
+        }
+    }
+
+
     private void SetConsumidorFinal()
     {
         currentCliente.TipoIdentificacion = TipoIdentificacion.Ruc;
         currentCliente.Identificacion = "9999999999999";
         currentCliente.NombreCompleto = "CONSUMIDOR FINAL";
-        currentCliente.Direccion = "S/D";
+        // La dirección ya no es obligatoria, se puede dejar vacía o poner S/D
+        currentCliente.Direccion = "S/D ";
         currentCliente.Telefono = "9999999999";
         currentCliente.Email = "facturacion@consumidor.final";
         currentCliente.Pais = "Ecuador";
@@ -499,13 +493,34 @@
         isSubmitting = true;
         serverValidationError = null;
 
+        // Regla de validación de País: Si es Pasaporte Y el país está vacío, mostrar error
+        if (currentCliente.TipoIdentificacion == TipoIdentificacion.Pasaporte && string.IsNullOrWhiteSpace(currentCliente.Pais))
+        {
+            serverValidationError = "Si la identificación es Pasaporte, el campo País no puede estar vacío.";
+            isSubmitting = false;
+            return;
+        }
+
         try
         {
             HttpResponseMessage response;
 
+            // Aseguramos que la dirección no nula, incluso si está vacía (asumiendo que el DTO lo soporta)
+            if (string.IsNullOrWhiteSpace(currentCliente.Direccion))
+            {
+                currentCliente.Direccion = "S/D";
+            }
+
+            // Aseguramos que el país sea Ecuador si no es Pasaporte
+            if (currentCliente.TipoIdentificacion != TipoIdentificacion.Pasaporte)
+            {
+                currentCliente.Pais = "Ecuador";
+            }
+
+
             if (currentCliente.Id == 0)
             {
-                // ... (tu lógica de crear DTO igual que antes) ...
+                // Crear DTO para POST
                 var createDto = new CreateCliente
                 {
                     TipoIdentificacion = currentCliente.TipoIdentificacion,
@@ -520,6 +535,7 @@
             }
             else
             {
+                // Usar UpdateCliente para PUT
                 response = await Http.PutAsJsonAsync($"api/clientes/{currentCliente.Id}", currentCliente);
             }
 
@@ -530,12 +546,11 @@
             }
             else
             {
-                // --- AQUÍ ESTÁ LA SOLUCIÓN AL MENSAJE GIGANTE ---
                 var errorBody = await response.Content.ReadAsStringAsync();
                 serverValidationError = ExtraerMensajeError(errorBody);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             serverValidationError = "Error de comunicación con el servidor.";
         }
@@ -545,23 +560,19 @@
         }
     }
 
-    // Función auxiliar para limpiar el JSON
+    // Función auxiliar para limpiar el JSON (Mantenida intacta)
     private string ExtraerMensajeError(string jsonResponse)
     {
         try
         {
-            // 1. Si es un mensaje simple (no es JSON), retornarlo directo
             if (!jsonResponse.Trim().StartsWith("{"))
                 return jsonResponse.Trim('"');
 
-            // 2. Si es el JSON de validación automática de .NET
             using var doc = System.Text.Json.JsonDocument.Parse(jsonResponse);
             var root = doc.RootElement;
 
-            // Caso A: Error de validación de campos (ej: Telefono incorrecto)
             if (root.TryGetProperty("errors", out var errors))
             {
-                // Toma el primer error que encuentre
                 foreach (var prop in errors.EnumerateObject())
                 {
                     if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
@@ -570,38 +581,49 @@
                     }
                 }
             }
-
-            // Caso B: Error manual lanzado por nosotros (ej: "RUC Inválido")
             if (root.TryGetProperty("message", out var message))
             {
                 return message.GetString() ?? "Error en la solicitud.";
             }
 
-            // Caso C: Otros formatos
             return "Verifique los datos ingresados.";
         }
         catch
         {
-            // Si falla el parseo, devolvemos el texto original limpio
             return jsonResponse;
         }
     }
 
     private void ConfirmDelete(int id) { deleteId = id; showDeleteModal = true; }
+
     private async Task HandleDelete()
-    { /* ... tu código delete ... */
-        // (Implementación igual a la que tenías)
+    {
         isSubmitting = true;
-        try { var res = await Http.DeleteAsync($"api/clientes/{deleteId}"); if (res.IsSuccessStatusCode) { showDeleteModal = false; await LoadClientes(); } else errorMessage = "No se pudo eliminar"; } catch { errorMessage = "Error conexion"; }
+        try
+        {
+            var res = await Http.DeleteAsync($"api/clientes/{deleteId}");
+            if (res.IsSuccessStatusCode)
+            {
+                showDeleteModal = false;
+                await LoadClientes();
+            }
+            else
+            {
+                errorMessage = "No se pudo eliminar";
+            }
+        }
+        catch
+        {
+            errorMessage = "Error conexion";
+        }
         isSubmitting = false;
     }
     private void CloseForm() => showFormModal = false;
 
-    // --- FUNCIONES VISUALES ---
+    // --- FUNCIONES VISUALES (Mantenidas intactas) ---
     private string GetBadgeClass(TipoIdentificacion tipo) => tipo switch { TipoIdentificacion.Ruc => "bg-blue", TipoIdentificacion.Cedula => "bg-green", TipoIdentificacion.Pasaporte => "bg-purple", _ => "" };
     private string GetHintText(TipoIdentificacion tipo) => tipo switch { TipoIdentificacion.Ruc => "Se requieren 13 dígitos", TipoIdentificacion.Cedula => "Se requieren 10 dígitos", TipoIdentificacion.Pasaporte => "Alfanumérico (3-20 caracteres)", _ => "" };
 
-    // --- NUEVO: Lógica para el MAXLENGTH ---
     private int GetMaxLength(TipoIdentificacion tipo)
     {
         return tipo switch

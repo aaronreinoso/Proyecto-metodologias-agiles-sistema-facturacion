@@ -1,161 +1,671 @@
 ﻿@page "/facturacion"
 @using SistemaFacturacionSRI.Domain.Entities
+@using SistemaFacturacionSRI.Domain.DTOs.Facturas
+@using SistemaFacturacionSRI.Domain.DTOs.Clientes
+@using SistemaFacturacionSRI.Domain.Enumss
 @inject HttpClient Http
+@inject IJSRuntime JS // Inyectar JS para manejar el enfoque
 
 <PageTitle>Punto de Venta</PageTitle>
 
+<style>
+    /* ------------------------------------------- */
+    /* ESTILOS BASE (Consistentes) */
+    /* ------------------------------------------- */
+    .container-fluid {
+        max-width: 1200px;
+        margin: 60px auto;
+        padding: 0 15px;
+    }
+
+    .header-pv {
+        margin-bottom: 25px;
+    }
+
+        .header-pv h3 {
+            font-weight: 800;
+            font-size: 28px;
+            color: #1a1a1a;
+            margin-bottom: 0;
+        }
+
+    .text-muted {
+        color: #6b7280;
+        font-size: 0.9em;
+    }
+
+    /* Tarjetas principales de Venta */
+    .sales-card {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .sales-card-header {
+        font-weight: 700;
+        font-size: 1.1em;
+        color: #1a1a1a;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Inputs y Selects */
+    .form-control, .form-select {
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #0058ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
+        }
+
+    /* Botones */
+    .btn-primary {
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+    .btn-sm-icon {
+        padding: 6px 12px;
+        font-size: 14px;
+        line-height: 1;
+    }
+
+    .btn-add-client {
+        padding: 10px 14px;
+        height: 48px; /* Ajustar a la altura del select */
+    }
+
+    /* ------------------------------------------- */
+    /* SECCIÓN CLIENTE */
+    /* ------------------------------------------- */
+    .client-data-box {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 15px;
+        border: 1px solid #e2e8f0;
+        margin-top: 15px;
+    }
+
+        .client-data-box strong {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .client-data-box div {
+            font-size: 0.9em;
+            color: #374151;
+        }
+
+    /* ------------------------------------------- */
+    /* SECCIÓN BUSQUEDA Y RESULTADOS */
+    /* ------------------------------------------- */
+    .search-input {
+        background-color: #f9fafb;
+    }
+
+    .product-result-list {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 10px; /* Espacio para el scrollbar */
+    }
+
+    .product-result-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px dashed #e5e7eb;
+        transition: background-color 0.1s;
+    }
+
+        .product-result-item:hover {
+            background-color: #fcfdfe;
+        }
+
+    .product-details {
+        flex-grow: 1;
+    }
+
+        .product-details h6 {
+            margin: 0;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .product-details small {
+            color: #6b7280;
+        }
+
+    .product-meta {
+        text-align: right;
+        min-width: 120px;
+    }
+
+    .badge-pv {
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-right: 5px;
+    }
+
+    .bg-iva {
+        background-color: #dbeafe;
+        color: #2563eb;
+    }
+
+    .bg-iva-0 {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    .bg-danger {
+        background-color: #fecaca;
+        color: #b91c1c;
+    }
+
+    /* ------------------------------------------- */
+    /* SECCIÓN CARRITO */
+    /* ------------------------------------------- */
+    .cart-wrapper {
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cart-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        max-height: 350px;
+        margin-bottom: 20px;
+    }
+
+    .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .cart-item-controls {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9em;
+        font-weight: 600;
+    }
+
+    .cart-item-qty {
+        width: 30px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 5px;
+        padding: 4px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .btn-qty {
+        background: #f1f5f9;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 5px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .btn-remove {
+        color: #ef4444;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-left: 10px;
+        font-size: 1.1em;
+        opacity: 0.7;
+    }
+
+    .cart-summary {
+        padding-top: 15px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .summary-line {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.95em;
+        color: #374151;
+    }
+
+    .summary-total {
+        font-size: 1.5em;
+        font-weight: 700;
+        color: #0058ff;
+        border-top: 2px dashed #e2e8f0;
+        padding-top: 10px;
+        margin-top: 10px;
+    }
+
+    .btn-generate {
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+        border: none;
+        width: 100%;
+        padding: 15px 0;
+        border-radius: 12px;
+        font-size: 1.1em;
+        font-weight: 700;
+        margin-top: 15px;
+    }
+
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+    /* MODAL DE CLIENTE (Reutilizando estilos de clientes.razor) */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        z-index: 50;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 600px;
+        border-radius: 18px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        padding: 30px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+        .modal-header h3 {
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #6b7280;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #f3f4f6;
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #111827;
+        border: 1px solid #e2e8f0;
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
+        color: white;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+    }
+
+    .error-box-modal {
+        background-color: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+
+</style>
+
 <div class="container-fluid mt-4">
-    <h3>Punto de Venta</h3>
-    <p class="text-muted">Genera facturas electrónicas en tiempo real</p>
+    <div class="header-pv">
+        <h3>Punto de Venta</h3>
+        <p class="text-muted">Genera facturas electrónicas en tiempo real</p>
+        @if (!string.IsNullOrWhiteSpace(facturaErrorMessage))
+        {
+            <div class="error-box-modal">❌ @facturaErrorMessage</div>
+        }
+    </div>
 
     <div class="row">
         <div class="col-md-8">
 
-            <div class="card mb-3 shadow-sm">
-                <div class="card-header bg-white">Datos del Cliente</div>
-                <div class="card-body">
-                    <div class="d-flex gap-2">
-                        <select class="form-select" @bind="clienteSeleccionadoId">
-                            <option value="0">-- Seleccione Cliente --</option>
-                            @if (listaClientes != null)
-                            {
-                                @foreach (var c in listaClientes)
-                                {
-                                    <option value="@c.Id">@c.NombreCompleto - @c.Identificacion</option>
-                                }
-                            }
-                        </select>
-                        <button class="btn btn-primary">+</button>
-                    </div>
-
-                    @if (clienteActual != null)
-                    {
-                        <div class="mt-3 p-2 bg-light rounded border">
-                            <div class="row">
-                                <div class="col-md-6"><strong>Nombre:</strong> @clienteActual.NombreCompleto</div>
-                                <div class="col-md-6"><strong>RUC/CI:</strong> @clienteActual.Identificacion</div>
-                                <div class="col-md-6"><strong>Email:</strong> @clienteActual.Email</div>
-                                <div class="col-md-6"><strong>Dirección:</strong> @clienteActual.Direccion</div>
-                            </div>
-                        </div>
-                    }
+            <!-- BLOQUE 1: DATOS DEL CLIENTE -->
+            <div class="sales-card">
+                <div class="sales-card-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    Datos del Cliente
                 </div>
+                <div class="d-flex gap-2">
+                    <select class="form-select" @bind="clienteSeleccionadoId">
+                        <option value="0">-- Seleccione Cliente --</option>
+                        @if (listaClientes != null)
+                        {
+                            @foreach (var c in listaClientes)
+                            {
+                                <option value="@c.Id">@c.NombreCompleto - @c.Identificacion</option>
+                            }
+                        }
+                    </select>
+                    <button class="btn-primary btn-add-client" @onclick="OpenClienteModal">+</button>
+                </div>
+
+                @if (clienteActual != null)
+                {
+                    <div class="client-data-box">
+                        <div class="row">
+                            <div class="col-md-6"><strong>Nombre:</strong> @clienteActual.NombreCompleto</div>
+                            <div class="col-md-6"><strong>RUC/CI:</strong> @clienteActual.Identificacion</div>
+                            <div class="col-md-6"><strong>Email:</strong> @clienteActual.Email</div>
+                            <div class="col-md-6"><strong>Dirección:</strong> @clienteActual.Direccion</div>
+                        </div>
+                    </div>
+                }
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">Buscar Productos</div>
-                <div class="card-body">
-                    <input type="text" class="form-control mb-3" placeholder="🔍 Buscar por código o nombre..."
-                           @bind="terminoBusqueda" @bind:event="oninput" />
+            <!-- BLOQUE 2: BUSCAR PRODUCTOS -->
+            <div class="sales-card">
+                <div class="sales-card-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Buscar Productos
+                </div>
 
-                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Precio</th>
-                                    <th>Stock</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @if (productosFiltrados != null)
-                                {
-                                    @foreach (var prod in productosFiltrados)
-                                    {
-                                        <tr>
-                                            <td>
-                                                <strong>@prod.CodigoPrincipal</strong><br />
-                                                <small>@prod.Descripcion</small>
-                                            </td>
-                                            <td>$@prod.PrecioUnitario</td>
-                                            <td>
-                                                <span class="badge @(prod.Stock > 0 ? "bg-success" : "bg-danger")">
-                                                    @prod.Stock
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary"
-                                                        disabled="@(prod.Stock <= 0)"
-                                                        @onclick="() => AgregarAlCarrito(prod)">
-                                                    + Agregar
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                <input type="text" class="form-control search-input mb-3" placeholder="🔍 Buscar por código o nombre..."
+                       @bind="terminoBusqueda" @bind:event="oninput" />
+
+                <div class="product-result-list">
+                    @if (listaProductos == null)
+                    {
+                        <div class="text-center text-muted">Cargando catálogo...</div>
+                    }
+                    else if (productosFiltrados != null && productosFiltrados.Any())
+                    {
+                        @foreach (var prod in productosFiltrados)
+                        {
+                            <div class="product-result-item" @onclick="() => AgregarAlCarrito(prod)">
+                                <div class="product-details">
+                                    <h6>@prod.Descripcion</h6>
+                                    <small>Código: @prod.CodigoPrincipal</small>
+                                    <span class="badge-pv @(prod.TarifaIva?.Porcentaje == 0 ? "bg-iva-0" : "bg-iva")">
+                                        IVA @(prod.TarifaIva?.Porcentaje.ToString("0") ?? "--")%
+                                    </span>
+                                </div>
+                                <div class="product-meta">
+                                    <strong style="color: @(prod.Stock > 0 ? "#065f46" : "#b91c1c");">$@prod.PrecioUnitario.ToString("F2")</strong>
+                                    <small>Stock: @prod.Stock</small>
+                                </div>
+                                <button class="btn-primary btn-sm-icon" disabled="@(prod.Stock <= 0)" @onclick:stopPropagation="true" @onclick="() => AgregarAlCarrito(prod)">
+                                    +
+                                </button>
+                            </div>
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(terminoBusqueda))
+                    {
+                        <div class="text-center text-muted p-3">No se encontraron productos.</div>
+                    }
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white">🛒 Carrito de Compra</div>
-                <div class="card-body d-flex flex-column">
-
-                    @if (carrito.Count == 0)
-                    {
-                        <div class="text-center my-auto text-muted">
-                            <i class="bi bi-cart-x" style="font-size: 2rem;"></i>
-                            <p>Carrito vacío</p>
-                            <small>Busca y agrega productos</small>
-                        </div>
-                    }
-                    else
-                    {
-                        <ul class="list-group list-group-flush mb-3 flex-grow-1" style="overflow-y: auto; max-height: 400px;">
-                            @foreach (var item in carrito)
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <div class="fw-bold">@item.ProductoNombre</div>
-                                        <small class="text-muted">@item.Cantidad x $@item.PrecioUnitario</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="d-block fw-bold">$@item.Subtotal</span>
-                                        <button class="btn btn-link text-danger p-0 text-decoration-none"
-                                                @onclick="() => RemoverDelCarrito(item)">
-                                            <small>Eliminar</small>
-                                        </button>
-                                    </div>
-                                </li>
-                            }
-                        </ul>
-
-                        <div class="border-top pt-3">
-                            <div class="d-flex justify-content-between">
-                                <span>Subtotal:</span>
-                                <span>$@carrito.Sum(x => x.Subtotal).ToString("F2")</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>IVA (15%):</span>
-                                <span>$@CalcularIVA().ToString("F2")</span>
-                            </div>
-                            <div class="d-flex justify-content-between fs-4 fw-bold mt-2">
-                                <span>Total:</span>
-                                <span class="text-primary">$@((carrito.Sum(x => x.Subtotal) + CalcularIVA()).ToString("F2"))</span>
-                            </div>
-
-                            <button class="btn btn-success w-100 mt-3 py-2" disabled="@(clienteActual == null || carrito.Count == 0)" @onclick="()=>GenerarFactura()">
-                                <i class="bi bi-check-circle"></i> Generar Factura
-                            </button>
-                        </div>
-                    }
+            <!-- BLOQUE 3: CARRITO DE COMPRA -->
+            <div class="sales-card cart-wrapper h-100">
+                <div class="sales-card-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="8" cy="21" r="1"></circle>
+                        <circle cx="19" cy="21" r="1"></circle>
+                        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.38a2 2 0 0 0 1.66-.78l3.58-6.81A2 2 0 0 0 20.01 4H6"></path>
+                    </svg>
+                    Carrito de Compra
                 </div>
+
+                @if (carrito.Count == 0)
+                {
+                    <div class="text-center my-auto text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="8" cy="21" r="1"></circle>
+                            <circle cx="19" cy="21" r="1"></circle>
+                            <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.38a2 2 0 0 0 1.66-.78l3.58-6.81A2 2 0 0 0 20.01 4H6"></path>
+                            <line x1="1" y1="1" x2="23" y2="23" stroke="#b91c1c" stroke-width="2.5"></line>
+                        </svg>
+                        <p class="mt-2 mb-0">Carrito vacío</p>
+                        <small>Busca y agrega productos</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="cart-list">
+                        @foreach (var item in carrito)
+                        {
+                            <div class="cart-item">
+                                <div>
+                                    <div class="fw-bold">@item.ProductoNombre</div>
+                                    <small class="text-muted">$@item.PrecioUnitario.ToString("F2") / uds</small>
+                                </div>
+                                <div class="text-end d-flex align-items-center">
+                                    <div class="cart-item-controls">
+                                        <button class="btn-qty" @onclick="() => AjustarCantidad(item, -1)">-</button>
+                                        <div class="cart-item-qty">@item.Cantidad</div>
+                                        <button class="btn-qty" @onclick="() => AjustarCantidad(item, 1)">+</button>
+                                    </div>
+                                    <span class="fw-bold ms-3">$@item.Subtotal.ToString("F2")</span>
+                                    <button class="btn-remove" @onclick="() => RemoverDelCarrito(item)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="cart-summary">
+                        <div class="summary-line">
+                            <span>Subtotal (IVA 15%):</span>
+                            <span>$@CalcularSubtotalIVA15().ToString("F2")</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Subtotal (IVA 0%):</span>
+                            <span>$@CalcularSubtotalIVA0().ToString("F2")</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Descuento:</span>
+                            <span>$0.00</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>IVA (15%):</span>
+                            <span>$@CalcularIVA().ToString("F2")</span>
+                        </div>
+                        <div class="summary-total">
+                            <span>Total a Pagar:</span>
+                            <span>$@((carrito.Sum(x => x.Subtotal) + CalcularIVA()).ToString("F2"))</span>
+                        </div>
+
+                        <!-- Simulación de selector de Forma de Pago -->
+                        <div class="mt-3">
+                            <label style="font-weight: 600; font-size: 0.9em;">Forma de Pago</label>
+                            <select class="form-select">
+                                <option>Efectivo</option>
+                                <option>Tarjeta de Crédito</option>
+                                <option>Transferencia</option>
+                            </select>
+                        </div>
+
+                        <button class="btn-generate" disabled="@(clienteActual == null || carrito.Count == 0 || isSubmitting)" @onclick="GenerarFactura">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="16" y1="13" x2="8" y2="13"></line>
+                                <line x1="16" y1="17" x2="8" y2="17"></line>
+                                <line x1="10" y1="9" x2="10" y2="9"></line>
+                            </svg>
+                            @(isSubmitting ? "Procesando..." : " Facturar")
+                        </button>
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
+@* MODAL PARA CREAR CLIENTE *@
+@if (showClienteModal)
+{
+    <div class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Nuevo Cliente</h3>
+                <button @onclick="CloseClienteModal" class="close-btn">×</button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(clienteValidationError))
+            {
+                <div class="error-box-modal">
+                    <span style="font-weight:bold;">Error:</span> @clienteValidationError
+                </div>
+            }
+
+            <EditForm Model="@newClienteDto" OnValidSubmit="HandleNewClientSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Tipo Identificación (*)</label>
+                        <InputSelect @bind-Value="newClienteDto.TipoIdentificacion" class="form-control" @onchange="OnTipoIdentificacionChange">
+                            @foreach (var tipo in Enum.GetValues(typeof(TipoIdentificacion)))
+                            {
+                                <option value="@tipo">@tipo</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-group">
+                        <label>Número (*)</label>
+                        <InputText @bind-Value="newClienteDto.Identificacion"
+                                   class="form-control"
+                                   maxlength="@GetMaxLength(newClienteDto.TipoIdentificacion)"
+                                   placeholder="Ej: 1725..."
+                                   onkeypress="@(newClienteDto.TipoIdentificacion == TipoIdentificacion.Pasaporte ? "" : "return event.charCode >= 48 && event.charCode <= 57")" />
+                        <div class="text-muted" style="font-size: 0.8em; margin-top: 4px;">@GetHintText(newClienteDto.TipoIdentificacion)</div>
+                        <ValidationMessage For="@(() => newClienteDto.Identificacion)" />
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: -10px; margin-bottom: 10px;">
+                    <button type="button" class="link-btn" @onclick="SetConsumidorFinal">Usar Consumidor Final</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre Completo (*)</label>
+                    <InputText @bind-Value="newClienteDto.NombreCompleto" class="form-control" style="text-transform:uppercase;" />
+                    <ValidationMessage For="@(() => newClienteDto.NombreCompleto)" />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>País @(newClienteDto.TipoIdentificacion == TipoIdentificacion.Pasaporte ? "(*)" : "")</label>
+                        <InputText @bind-Value="newClienteDto.Pais"
+                                   class="form-control"
+                                   disabled="@(newClienteDto.TipoIdentificacion != TipoIdentificacion.Pasaporte)" />
+                        <ValidationMessage For="@(() => newClienteDto.Pais)" />
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <InputText @bind-Value="newClienteDto.Telefono"
+                                   class="form-control"
+                                   maxlength="10"
+                                   onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+                        <ValidationMessage For="@(() => newClienteDto.Telefono)" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Correo Electrónico (*)</label>
+                    <InputText @bind-Value="newClienteDto.Email" class="form-control" placeholder="cliente@ejemplo.com" />
+                    <ValidationMessage For="@(() => newClienteDto.Email)" />
+                </div>
+
+                <div class="form-group">
+                    <label>Dirección</label>
+                    <InputTextArea @bind-Value="newClienteDto.Direccion" rows="2" class="form-control" />
+                    <ValidationMessage For="@(() => newClienteDto.Direccion)" />
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" @onclick="CloseClienteModal">Cancelar</button>
+                    <button type="submit" class="btn-save" disabled="@isSubmittingNewClient">
+                        @(isSubmittingNewClient ? "Registrando..." : "Guardar y Seleccionar")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+
 @code {
-    // Listas base
+    // DEPENDENCIAS DE DATOS
     private List<Cliente>? listaClientes;
     private List<Producto>? listaProductos;
 
-    // Selección
+    // ESTADO DE LA VENTA
     private int _clienteSeleccionadoId;
     private int clienteSeleccionadoId
     {
@@ -167,16 +677,20 @@
         }
     }
     private Cliente? clienteActual;
-
-    // Buscador
     private string terminoBusqueda = "";
-    private IEnumerable<Producto>? productosFiltrados =>
-        string.IsNullOrWhiteSpace(terminoBusqueda)
-        ? new List<Producto>() // No mostrar nada si no busca
-        : listaProductos?.Where(p => p.Descripcion.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
-                                  || p.CodigoPrincipal.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase));
+    private List<ItemCarrito> carrito = new();
+    private bool isSubmitting = false; // Para el botón de Facturar
+    private string? facturaErrorMessage; // Para mostrar errores de la API de factura
 
-    // Carrito (Clase interna simple para la UI)
+    // ESTADO DEL MODAL DE CLIENTE
+    private bool showClienteModal = false;
+    private CreateCliente newClienteDto = new() { TipoIdentificacion = TipoIdentificacion.Cedula, Pais = "Ecuador", Direccion = "S/D" };
+    private string? clienteValidationError;
+    private bool isSubmittingNewClient = false;
+
+
+    // --- CLASES INTERNAS (Mantenidas) ---
+
     public class ItemCarrito
     {
         public int ProductoId { get; set; }
@@ -186,31 +700,54 @@
         public decimal PorcentajeIVA { get; set; }
         public decimal Subtotal => PrecioUnitario * Cantidad;
     }
-    private List<ItemCarrito> carrito = new();
+
+    // --- CÁLCULOS FILTRADOS ---
+
+    private IEnumerable<Producto>? productosFiltrados =>
+        string.IsNullOrWhiteSpace(terminoBusqueda)
+        ? new List<Producto>() // No mostrar nada si no busca
+        : listaProductos?.Where(p => (p.Descripcion.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase)
+                                     || p.CodigoPrincipal.Contains(terminoBusqueda, StringComparison.OrdinalIgnoreCase))
+                                     && p.Stock > 0); // Mostrar solo productos en stock y filtrados
+
+    private decimal CalcularSubtotalIVA15() => carrito.Where(x => x.PorcentajeIVA > 0).Sum(x => x.Subtotal);
+    private decimal CalcularSubtotalIVA0() => carrito.Where(x => x.PorcentajeIVA == 0).Sum(x => x.Subtotal);
+    private decimal CalcularIVA() => carrito.Sum(x => x.Subtotal * (x.PorcentajeIVA / 100));
+
+
+    // --- LÓGICA DE INICIO Y DATOS ---
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
         try
         {
-            // Cargar datos usando tus API Controllers existentes
             listaClientes = await Http.GetFromJsonAsync<List<Cliente>>("api/clientes");
-            listaProductos = await Http.GetFromJsonAsync<List<Producto>>("api/productos");
+            listaProductos = await Http.GetFromJsonAsync<List<Producto>>("api/productos?includeIva=true"); // Asumiendo que se puede incluir el IVA
+            StateHasChanged();
         }
         catch (Exception ex)
         {
+            // Manejo de errores de carga en consola/UI si es necesario
             Console.WriteLine($"Error cargando datos: {ex.Message}");
         }
     }
+
+
+    // --- LÓGICA DEL CARRITO ---
 
     private void AgregarAlCarrito(Producto prod)
     {
         var itemExistente = carrito.FirstOrDefault(x => x.ProductoId == prod.Id);
 
-        // Validación simple de stock visual
         int cantidadEnCarrito = itemExistente?.Cantidad ?? 0;
         if (cantidadEnCarrito + 1 > prod.Stock)
         {
-            // Aquí podrías mostrar una alerta de "Stock insuficiente"
+            facturaErrorMessage = $"Stock insuficiente. Solo quedan {prod.Stock - cantidadEnCarrito} unidades disponibles de {prod.Descripcion}.";
             return;
         }
 
@@ -225,68 +762,93 @@
                 ProductoId = prod.Id,
                 ProductoNombre = prod.Descripcion,
                 PrecioUnitario = prod.PrecioUnitario,
-                PorcentajeIVA = prod.TarifaIva.Porcentaje,
+                PorcentajeIVA = prod.TarifaIva?.Porcentaje ?? 0, // Usar 0 si es null (seguridad)
                 Cantidad = 1
             });
         }
+        facturaErrorMessage = null; // Limpiar error si la adición fue exitosa
+        StateHasChanged();
     }
+
+    private void AjustarCantidad(ItemCarrito item, int delta)
+    {
+        var prod = listaProductos?.FirstOrDefault(p => p.Id == item.ProductoId);
+        if (prod == null) return;
+
+        int nuevaCantidad = item.Cantidad + delta;
+
+        if (nuevaCantidad > 0 && nuevaCantidad <= prod.Stock)
+        {
+            item.Cantidad = nuevaCantidad;
+            facturaErrorMessage = null;
+        }
+        else if (nuevaCantidad > prod.Stock)
+        {
+            facturaErrorMessage = $"Stock insuficiente. Solo {prod.Stock} unidades disponibles de {prod.Descripcion}.";
+        }
+        else if (nuevaCantidad <= 0)
+        {
+            RemoverDelCarrito(item);
+        }
+        StateHasChanged();
+    }
+
 
     private void RemoverDelCarrito(ItemCarrito item)
     {
         carrito.Remove(item);
+        facturaErrorMessage = null;
+        StateHasChanged();
     }
 
-    private decimal CalcularIVA()
-    {
-        return carrito.Sum(x => x.Subtotal * (x.PorcentajeIVA / 100));
-    }
 
-    Boolean isSubmitting = false;
+    // --- LÓGICA DE FACTURACIÓN (Mantenida) ---
+
     private async Task GenerarFactura()
     {
-      
-        if (clienteActual == null || !carrito.Any()) return;
+        if (clienteActual == null || !carrito.Any())
+        {
+            facturaErrorMessage = "Debe seleccionar un cliente y agregar al menos un producto al carrito.";
+            return;
+        }
 
-        isSubmitting = true; // Bloquear botón para evitar doble clic (necesitas declarar esta variable si no existe)
+        isSubmitting = true;
+        facturaErrorMessage = null;
 
         try
         {
-            Console.WriteLine("Generando Factura");
-            // 1. Preparamos el DTO según lo que espera tu API (CreateFacturaDto)
-            var facturaDto = new Domain.DTOs.Facturas.CreateFacturaDto
+            var facturaDto = new CreateFacturaDto
             {
                 ClienteId = clienteActual.Id,
-                Detalles = carrito.Select(item => new Domain.DTOs.Facturas.CreateDetalleFacturaDto
+                Detalles = carrito.Select(item => new CreateDetalleFacturaDto
                 {
                     ProductoId = item.ProductoId,
                     Cantidad = item.Cantidad
                 }).ToList()
             };
-            Console.WriteLine("Antes del response");
-            // 2. Llamamos a tu Controlador usando HTTP POST
+
             var response = await Http.PostAsJsonAsync("api/facturas", facturaDto);
-            Console.WriteLine("Despues del response");
+
             if (response.IsSuccessStatusCode)
             {
                 // Éxito: Limpiar carrito y avisar
                 carrito.Clear();
-                clienteSeleccionadoId = 0; // Resetear cliente si quieres
+                clienteSeleccionadoId = 0;
                 clienteActual = null;
-
-                // Opcional: Navegar a una página de éxito o mostrar mensaje
-                // await JS.InvokeVoidAsync("alert", "Factura creada exitosamente!");
-                Console.WriteLine("Factura Creada");
+                // Deberíamos mostrar una alerta elegante o navegar, pero por ahora solo el console.
+                Console.WriteLine("Factura creada exitosamente.");
+                await LoadData(); // Recargar productos para actualizar el stock
             }
             else
             {
-                // Error: Leer mensaje del backend (ej: "Stock insuficiente")
                 var errorMsg = await response.Content.ReadAsStringAsync();
-                // Podrías asignar esto a tu variable 'errorMessage' para mostrarlo en pantalla
-                Console.WriteLine($"Error: {errorMsg}");
+                facturaErrorMessage = ExtraerMensajeError(errorMsg);
+                Console.WriteLine($"Error: {facturaErrorMessage}");
             }
         }
         catch (Exception ex)
         {
+            facturaErrorMessage = "Error de conexión con el servidor.";
             Console.WriteLine($"Error de conexión: {ex.Message}");
         }
         finally
@@ -294,4 +856,134 @@
             isSubmitting = false;
         }
     }
+
+    private string ExtraerMensajeError(string jsonResponse)
+    {
+        // Función mantenida y adaptada para extraer mensajes de error de JSON/API
+        try
+        {
+            if (!jsonResponse.Trim().StartsWith("{"))
+                return jsonResponse.Trim('"');
+
+            using var doc = System.Text.Json.JsonDocument.Parse(jsonResponse);
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("errors", out var errors))
+            {
+                foreach (var prop in errors.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        return prop.Value[0].GetString() ?? "Datos inválidos.";
+                    }
+                }
+            }
+            if (root.TryGetProperty("message", out var message))
+            {
+                return message.GetString() ?? "Error en la solicitud.";
+            }
+
+            return "Verifique los datos ingresados.";
+        }
+        catch
+        {
+            return jsonResponse;
+        }
+    }
+
+
+    // --- LÓGICA DEL MODAL DE CREACIÓN DE CLIENTE (Basada en clientes.razor) ---
+
+    private void OpenClienteModal()
+    {
+        // Inicializar DTO con valores por defecto
+        newClienteDto = new CreateCliente { TipoIdentificacion = TipoIdentificacion.Cedula, Pais = "Ecuador", Direccion = "S/D" };
+        clienteValidationError = null;
+        isSubmittingNewClient = false;
+        showClienteModal = true;
+    }
+
+    private void CloseClienteModal() => showClienteModal = false;
+
+    private void SetConsumidorFinal()
+    {
+        newClienteDto.TipoIdentificacion = TipoIdentificacion.Ruc;
+        newClienteDto.Identificacion = "9999999999999";
+        newClienteDto.NombreCompleto = "CONSUMIDOR FINAL";
+        newClienteDto.Direccion = "S/D";
+        newClienteDto.Telefono = "9999999999";
+        newClienteDto.Email = "facturacion@consumidor.final";
+        newClienteDto.Pais = "Ecuador";
+    }
+
+    private void OnTipoIdentificacionChange(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<TipoIdentificacion>(e.Value?.ToString(), out var nuevoTipo))
+        {
+            newClienteDto.TipoIdentificacion = nuevoTipo;
+            newClienteDto.Identificacion = ""; // Limpiar id
+
+            if (nuevoTipo == TipoIdentificacion.Pasaporte)
+            {
+                if (newClienteDto.Pais == "Ecuador") newClienteDto.Pais = "";
+            }
+            else
+            {
+                newClienteDto.Pais = "Ecuador";
+            }
+        }
+    }
+
+    private async Task HandleNewClientSubmit()
+    {
+        isSubmittingNewClient = true;
+        clienteValidationError = null;
+
+        // Regla de validación de País
+        if (newClienteDto.TipoIdentificacion == TipoIdentificacion.Pasaporte && string.IsNullOrWhiteSpace(newClienteDto.Pais))
+        {
+            clienteValidationError = "Si la identificación es Pasaporte, el campo País no puede estar vacío.";
+            isSubmittingNewClient = false;
+            return;
+        }
+
+        try
+        {
+            // Asegurar campos no obligatorios
+            if (string.IsNullOrWhiteSpace(newClienteDto.Direccion)) newClienteDto.Direccion = "S/D";
+            if (newClienteDto.TipoIdentificacion != TipoIdentificacion.Pasaporte) newClienteDto.Pais = "Ecuador";
+
+            var response = await Http.PostAsJsonAsync("api/clientes", newClienteDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Cargar datos y seleccionar el nuevo cliente
+                await LoadData();
+                var nuevoCliente = await response.Content.ReadFromJsonAsync<Cliente>();
+                if (nuevoCliente != null)
+                {
+                    clienteSeleccionadoId = nuevoCliente.Id; // Selecciona el cliente en el dropdown
+                }
+                CloseClienteModal();
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                clienteValidationError = ExtraerMensajeError(errorBody);
+            }
+        }
+        catch (Exception)
+        {
+            clienteValidationError = "Error de comunicación con el servidor al registrar el cliente.";
+        }
+        finally
+        {
+            isSubmittingNewClient = false;
+        }
+    }
+
+    // --- FUNCIONES AUXILIARES (De clientes.razor) ---
+
+    private string GetHintText(TipoIdentificacion tipo) => tipo switch { TipoIdentificacion.Ruc => "Se requieren 13 dígitos", TipoIdentificacion.Cedula => "Se requieren 10 dígitos", TipoIdentificacion.Pasaporte => "Alfanumérico (3-20 caracteres)", _ => "" };
+    private int GetMaxLength(TipoIdentificacion tipo) => tipo switch { TipoIdentificacion.Cedula => 10, TipoIdentificacion.Ruc => 13, TipoIdentificacion.Pasaporte => 20, _ => 20 };
 }

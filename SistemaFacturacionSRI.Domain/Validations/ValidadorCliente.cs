@@ -122,7 +122,7 @@ namespace SistemaFacturacionSRI.Domain.Validations
             if (string.IsNullOrWhiteSpace(direccion)) return ResultadoValidacion.Error("La dirección es obligatoria.");
             direccion = direccion.Trim();
 
-            if (direccion.Length < 5) return ResultadoValidacion.Error("La dirección es muy corta.");
+            if (direccion.Length < 2) return ResultadoValidacion.Error("La dirección es muy corta.");
             if (direccion.Length > 300) return ResultadoValidacion.Error("La dirección excede los 300 caracteres.");
 
             if (direccion.Contains("\n") || direccion.Contains("\r"))

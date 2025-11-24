@@ -9,7 +9,9 @@
 <PageTitle>Gestión de Productos</PageTitle>
 
 <style>
-    /* Asegurando estilos clave */
+    /* ------------------------------------------- */
+    /* ESTILOS BASE (Mantenidos y Ajustados) */
+    /* ------------------------------------------- */
     .container {
         max-width: 1100px;
         margin: 60px auto;
@@ -27,9 +29,23 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 28px;
+        flex-wrap: wrap; /* Responsivo */
     }
 
+        .header h1 {
+            font-weight: 700;
+            font-size: 28px;
+            color: #1f2937; /* Gris oscuro para el título */
+        }
+
+        .header p {
+            color: #6b7280; /* Subtítulo gris */
+            margin-top: -15px;
+            margin-bottom: 20px;
+        }
+
     .btn-primary {
+        /* Estilo azul degradado */
         background: linear-gradient(135deg, #0058ff, #4f9eff);
         color: white;
         border: none;
@@ -41,57 +57,178 @@
         transition: all 0.2s ease;
     }
 
-    .table-container {
-        border-radius: 12px;
-        overflow: hidden;
-    }
+        .btn-primary:hover {
+            opacity: 0.9;
+            box-shadow: 0 4px 10px rgba(0, 85, 255, 0.35);
+        }
 
-    table {
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+    /* Estilo del campo de búsqueda */
+    .search-input {
         width: 100%;
-        border-collapse: collapse;
-        border-spacing: 0;
-        background: rgba(255, 255, 255, 0.85);
+        padding: 12px 16px;
         border-radius: 12px;
-        overflow: hidden;
+        border: 1px solid #e5e7eb;
+        background-color: #f9fafb; /* Fondo ligeramente gris */
+        font-size: 16px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        margin-bottom: 20px;
     }
 
-    th {
+        .search-input:focus {
+            border-color: #0058ff;
+            box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
+            outline: none;
+        }
+
+
+    /* ------------------------------------------- */
+    /* NUEVOS ESTILOS DE TARJETA (MOCKUP) */
+    /* ------------------------------------------- */
+
+    .product-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px; /* Espacio entre tarjetas */
+    }
+
+    .product-list-card {
+        display: flex;
+        align-items: center;
+        padding: 18px 20px;
+        border-radius: 16px;
+        background-color: #ffffff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Sombra muy suave */
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .product-list-card:hover {
+            border-color: #c7d2fe; /* Borde azul suave al pasar el ratón */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+
+    /* Ícono del producto (Cubo Azul) */
+    .product-icon-box {
+        background-color: #eff6ff; /* Azul muy claro */
+        color: #3b82f6; /* Azul de ícono */
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+    /* Sección de Nombre y Categorías */
+    .product-details {
+        flex-grow: 1;
+        min-width: 0; /* Para que el texto largo se trunque correctamente */
         text-align: left;
-        padding: 14px 16px;
-        color: #333;
-        font-weight: 700;
-        font-size: 15px;
-        border-bottom: 1px solid #e5e7eb;
-        background: rgba(250, 250, 250, 0.8);
     }
 
-    td {
-        padding: 14px 16px;
-        color: #222;
-        font-size: 15px;
-        border-bottom: 1px solid #f0f2f5;
-        transition: background-color 0.2s ease;
-    }
+        .product-details h4 {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 0;
+            color: #1f2937;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-    tr:hover td {
-        background: rgba(247, 249, 252, 0.6);
-    }
-
-    .actions {
+    .product-tags {
         display: flex;
         gap: 8px;
-        justify-content: center;
+        margin-top: 6px;
+        flex-wrap: wrap;
     }
 
-    .icon-btn {
-        border: none;
-        background: none;
-        font-size: 18px;
-        opacity: 0.6;
-        transition: opacity 0.2s ease, transform 0.15s ease;
-        cursor: pointer;
+    /* Sección de Precio y Stock */
+    .product-meta {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-shrink: 0;
     }
 
+    .meta-item {
+        text-align: right;
+        min-width: 80px;
+    }
+
+        .meta-item strong {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .meta-item small {
+            display: block;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+    /* Ícono de flecha (chevron) */
+    .chevron-icon {
+        color: #9ca3af;
+        margin-left: 10px;
+        width: 20px;
+        height: 20px;
+    }
+
+
+    /* ------------------------------------------- */
+    /* BADGES (Para Tags y Stock) */
+    /* ------------------------------------------- */
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 8px;
+        line-height: 1;
+        text-align: center;
+    }
+
+    /* Colores del Mockup */
+    .badge-category {
+        background-color: #eef2ff; /* Índigo muy claro */
+        color: #4338ca; /* Índigo oscuro */
+    }
+
+    /* Estado de Stock / IVA */
+    .badge-iva {
+        background-color: #dbeafe; /* Azul claro */
+        color: #2563eb; /* Azul */
+    }
+
+    .badge-iva-0 {
+        background-color: #d1fae5; /* Verde claro */
+        color: #065f46; /* Verde oscuro */
+    }
+
+    .badge-stock-danger {
+        background-color: #fecaca; /* Rojo claro */
+        color: #b91c1c; /* Rojo oscuro */
+        font-weight: 600;
+    }
+
+    .badge-ice {
+        background-color: #fef3c7; /* Amarillo claro */
+        color: #92400e; /* Marrón/Naranja */
+    }
+
+    /* ------------------------------------------- */
+    /* MODAL DE ELIMINACIÓN */
+    /* ------------------------------------------- */
     .modal-overlay {
         position: fixed;
         inset: 0;
@@ -110,6 +247,14 @@
         width: 90%;
         max-width: 480px;
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        text-align: left;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
     }
 
     .btn-secondary {
@@ -123,25 +268,60 @@
         transition: background 0.2s ease;
     }
 
-    /* Nuevo estilo para filas clicables */
-    .table-row-link:hover {
-        background-color: #f0f8ff !important;
+    .alert-danger {
+        padding: 12px;
+        border-radius: 8px;
+        background-color: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fca5a5;
+        font-size: 14px;
+    }
+
+    /* Esconder acciones de tabla no usadas */
+    .table-container, table, th, td, tr:hover {
+        display: none !important; /* Deshabilitamos el viejo layout de tabla */
+    }
+
+    /* Responsividad básica */
+    @@media (max-width: 768px) {
+        .product-list-card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .product-meta {
+            margin-top: 15px;
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .chevron-icon {
+            display: none;
+        }
+
+        .meta-item {
+            min-width: 60px;
+        }
     }
 </style>
 
 <div class="container">
     <div class="header">
-        <h1>📦 Gestión de Productos</h1>
+        <div>
+            <h1>Gestión de Productos</h1>
+            <p>Administra tu catálogo de productos e inventario</p>
+        </div>
         <AuthorizeView Roles="Administrador">
             <Authorized>
-                @* El botón ahora navega a la página de creación (Wizard) *@
-                <button class="btn-primary" @onclick="@(() => NavManager.NavigateTo("/productos/crear"))">＋ Nuevo Producto</button>
+                <button class="btn-primary" @onclick="@(() => NavManager.NavigateTo("/productos/crear"))">
+                    <span style="font-size:16px;">＋ Crear Producto</span>
+                </button>
             </Authorized>
         </AuthorizeView>
     </div>
 
     <div class="mb-4">
-        <input type="text" class="form-control" placeholder="🔍 Buscar por código, nombre, marca o presentación..."
+        <input type="text" class="search-input" placeholder="🔍 Buscar productos..."
                @bind="terminoBusqueda" @bind:event="oninput" />
     </div>
 
@@ -151,7 +331,7 @@
     }
     else if (errorMessage != null)
     {
-        <div style="color:#ef4444; text-align:center; font-weight:600; padding:20px;">⚠️ @errorMessage</div>
+        <div class="alert-danger" style="text-align:center; font-weight:600; padding:20px;">⚠️ @errorMessage</div>
     }
     else if (!productosFiltrados.Any())
     {
@@ -159,67 +339,75 @@
     }
     else
     {
+        <div class="product-list">
+            @foreach (var p in productosFiltrados)
+            {
+                <div class="product-list-card" @onclick="@(() => NavManager.NavigateTo($"/productos/lotes/{p.Id}"))">
+
+                    <!-- Ícono del Producto (Cubo) -->
+                    <div class="product-icon-box">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                            <path d="m3 7 9 5 9-5"></path>
+                            <path d="M12 22V12"></path>
+                        </svg>
+                    </div>
+
+                    <!-- Detalles del Producto (Nombre y Tags) -->
+                    <div class="product-details">
+                        <h4>@p.NombreGenerico @p.Marca @p.Presentacion</h4>
+
+                        <div class="product-tags">
+                            <!-- Tag de Categoría (Simulado, usa NombreGenerico como proxy si no hay un campo Category) -->
+                            <span class="badge badge-category">@(p.NombreGenerico.Split(' ').FirstOrDefault() ?? "Ítem")</span>
+
+                            <!-- Tag de IVA -->
+                            <span class="badge @(p.TarifaIva?.Porcentaje == 0 ? "badge-iva-0" : "badge-iva")">
+                                IVA @(p.TarifaIva?.Porcentaje.ToString("0") ?? "--")%
+                            </span>
+
+                            <!-- Tag de Stock Bajo / Perecible -->
+                            @if (p.Stock <= 20)
+                            {
+                                <span class="badge badge-stock-danger">⚠️ Stock Bajo</span>
+                            }
+
+                            @if (p.EsPerecible)
+                            {
+                                <span class="badge badge-ice">⏳ Perecible</span>
+                            }
+
+                            <!-- Simulación de Tags ICE (si hay un código ICE, aunque no está en la data actual) -->
+                            @if (!string.IsNullOrWhiteSpace(p.CodigoICE))
+                            {
+                                <span class="badge badge-ice">ICE: @p.CodigoICE</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Meta Data (Precio y Stock) -->
+                    <div class="product-meta">
+                        <div class="meta-item">
+                            <small>Precio</small>
+                            <strong>$@p.PrecioUnitario.ToString("0.00")</strong>
+                        </div>
+                        <div class="meta-item" style="color: @(p.Stock > 20 ? "#065f46" : "#b91c1c");">
+                            <small>Stock Total</small>
+                            <strong>@p.Stock.ToString("0") uds</strong>
+                        </div>
+
+                        <!-- Flecha de detalle -->
+                        <svg class="chevron-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Aquí va el div vacío para mantener la tabla oculta, si es necesario, pero es mejor eliminarla -->
         <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nombre / Marca / Presentación</th>
-                        <th>PVP</th>
-                        <th>IVA</th>
-                        <th>Stock Actual</th>
-                        <th>Perecible</th>
-                        <AuthorizeView Roles="Administrador">
-                            <Authorized>
-                                <th style="text-align:center;">Lotes / Acciones</th>
-                            </Authorized>
-                        </AuthorizeView>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var p in productosFiltrados)
-                    {
-                        @* Clic en la fila navega al detalle de Lotes *@
-                        <tr class="table-row-link" @onclick="@(() => NavManager.NavigateTo($"/productos/lotes/{p.Id}"))">
-                            <td>@p.CodigoPrincipal</td>
-                            <td>
-                                <strong>@p.NombreGenerico</strong><br />
-                                <small class="text-muted">@p.Marca | @p.Presentacion</small>
-                            </td>
-                            <td>$@p.PrecioUnitario.ToString("0.00")</td>
-                            <td>
-                                @p.TarifaIva?.Porcentaje.ToString("0")%
-                            </td>
-                            <td>
-                                <span class="badge @(p.Stock > 0 ? "bg-success" : "bg-danger")">
-                                    @p.Stock.ToString("0")
-                                </span>
-                            </td>
-                            <td>
-                                @if (p.EsPerecible)
-                                {
-                                    <span class="badge bg-warning text-dark">⏳ Sí</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">No</span>
-                                }
-                            </td>
-                            <AuthorizeView Roles="Administrador">
-                                <Authorized>
-                                    <td style="text-align:center;">
-                                        <div class="actions">
-                                            @* Botón para ver lotes (se mantiene aquí si el clic en la fila se bloquea) *@
-                                            <button class="icon-btn" title="Ver Lotes / Editar" @onclick:stopPropagation="true" @onclick="@(() => NavManager.NavigateTo($"/productos/lotes/{p.Id}"))">👁️‍🗨️</button>
-                                            <button class="icon-btn" title="Eliminar" style="color:#ef4444;" @onclick:stopPropagation="true" @onclick="@(() => ConfirmDelete(p.Id, p.Descripcion))">🗑️</button>
-                                        </div>
-                                    </td>
-                                </Authorized>
-                            </AuthorizeView>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <!-- El contenido de la tabla anterior fue eliminado para adoptar el estilo de tarjeta -->
         </div>
     }
 </div>
@@ -232,11 +420,13 @@
             <p>¿Deseas eliminar el producto <b>@productoToDeleteName</b>?</p>
             @if (!string.IsNullOrEmpty(deleteError))
             {
-                <div class="alert alert-danger mt-3">@deleteError</div>
+                <div class="alert-danger mt-3">@deleteError</div>
             }
             <div class="modal-actions">
                 <button class="btn-secondary" @onclick="CancelDelete">Cancelar</button>
-                <button class="btn-primary" style="background:#ef4444" @onclick="HandleDelete" disabled="@isSubmitting">Eliminar</button>
+                <button class="btn-primary" style="background: linear-gradient(135deg, #dc2626, #ef4444);" @onclick="HandleDelete" disabled="@isSubmitting">
+                    @(isSubmitting ? "Eliminando..." : "Eliminar")
+                </button>
             </div>
         </div>
     </div>
@@ -252,7 +442,7 @@
     private string productoToDeleteName = string.Empty;
     private string terminoBusqueda = string.Empty;
 
-    // Lógica de filtrado (Busca en los nuevos campos de unicidad)
+    // Lógica de filtrado (Mantenida intacta)
     private IEnumerable<Producto> productosFiltrados =>
         productos?.Where(p =>
             string.IsNullOrEmpty(terminoBusqueda) ||
@@ -284,6 +474,7 @@
     private void ConfirmDelete(int id, string name)
     {
         productoToDeleteId = id;
+        // La descripción en la tabla era NombreGenerico + Marca + Presentacion, usamos NombreGenerico como proxy.
         productoToDeleteName = name;
         deleteError = null;
         showDeleteModal = true;

@@ -8,20 +8,52 @@
 <PageTitle>Nuevo Producto - Wizard</PageTitle>
 
 <style>
-    /* Estilos CSS simplificados para la explicación */
+    /* ------------------------------------------- */
+    /* ESTILOS DE ESTRUCTURA Y FONDO (Tomados de Productos.razor) */
+    /* ------------------------------------------- */
     .container {
         max-width: 900px;
         margin: 60px auto;
         padding: 48px;
         border-radius: 24px;
-        background: rgba(255, 255, 255, 0.9);
+        background: rgba(255, 255, 255, 0.9); /* Ligeramente opaco */
+        backdrop-filter: blur(12px);
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.7);
     }
 
-    .header h1 {
-        font-weight: 800;
-        font-size: 32px;
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
     }
+
+        .header h1 {
+            font-weight: 800;
+            font-size: 32px;
+            color: #1a1a1a;
+        }
+
+    /* ------------------------------------------- */
+    /* BOTONES */
+    /* ------------------------------------------- */
+    .btn-primary {
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 85, 255, 0.25);
+        transition: all 0.2s ease;
+    }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
     .btn-secondary {
         background: #f1f5f9;
@@ -31,30 +63,187 @@
         padding: 9px 16px;
         font-weight: 600;
         cursor: pointer;
+        transition: background 0.2s ease;
     }
 
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+    .btn-success {
+        /* Estilo para el botón de Guardar */
+        background: linear-gradient(135deg, #10b981, #34d399);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+        transition: all 0.2s ease;
+    }
+
+        .btn-success:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+    /* ------------------------------------------- */
+    /* FORMULARIO Y WIZARD */
+    /* ------------------------------------------- */
+
+    /* Contenedor de bloque (simula la tarjeta interna del mockup) */
+    .form-block {
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+    }
+
+    .form-block-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+
+        .form-block-header h5 {
+            margin: 0;
+            font-weight: 700;
+            color: #333;
+        }
+
+    .icon-wizard {
+        color: #0058ff;
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Estilo de Input (Asume form-control) */
+    .form-control, .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        transition: border-color 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #0058ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
+        }
+
+    label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    /* Estilos de Tarjetas de Categoría (Wizard) */
     .card-category {
         border: 1px solid #e2e8f0;
         padding: 20px;
         border-radius: 12px;
         cursor: pointer;
+        transition: all 0.2s ease;
+        min-height: 100px;
+        background: #ffffff;
     }
+
+        .card-category:hover {
+            border-color: #92baff;
+            box-shadow: 0 4px 15px rgba(0, 85, 255, 0.1);
+        }
 
         .card-category.selected {
             border-width: 2px;
             border-color: #0058ff;
-            background-color: #e6f0ff;
+            background-color: #e6f0ff; /* Fondo azul claro para selección */
+            box-shadow: 0 4px 15px rgba(0, 85, 255, 0.2);
         }
 
-    .validation-message {
+        .card-category h6 {
+            font-weight: 700;
+            font-size: 16px;
+            margin-top: 0;
+        }
+
+    /* ------------------------------------------- */
+    /* MENSAJES */
+    /* ------------------------------------------- */
+    .validation-message, .alert-danger {
         color: #ef4444;
-        font-size: 12px;
+        font-size: 13px;
         display: block;
+    }
+
+    .alert {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    .alert-info {
+        background-color: #e0f2fe;
+        color: #0c4a6e;
+    }
+
+    .alert-danger, .alert-warning {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .alert-success {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+
+    /* Estilo para inputs de tipo checkbox */
+    .form-check-input {
+        width: 1.25em;
+        height: 1.25em;
+        margin-top: 0.25em;
+        vertical-align: top;
+        background-color: #fff;
+        border: 1px solid #adb5bd;
+        border-radius: 0.25rem;
+        appearance: none;
+        cursor: pointer;
+    }
+
+        .form-check-input:checked {
+            background-color: #0058ff;
+            border-color: #0058ff;
+        }
+
+    .text-muted {
+        color: #6b7280 !important;
+    }
+
+    /* Utilidades de espaciado */
+    .row > div {
+        margin-bottom: 12px;
+    }
+
+    .mt-3 {
+        margin-top: 1rem !important;
+    }
+
+    .mt-4 {
+        margin-top: 1.5rem !important;
     }
 </style>
 
 <div class="container">
-    <div class="header d-flex justify-content-between align-items-center">
+    <div class="header">
         <h1>➕ Registrar Nuevo Producto</h1>
         <button class="btn-secondary" @onclick="GoBack">
             ← Volver a Productos
@@ -63,7 +252,7 @@
 
     @if (isLoading)
     {
-        <div class="alert alert-info">Cargando tarifas...</div>
+        <div class="alert alert-info">Cargando tarifas y datos iniciales...</div>
     }
     else
     {
@@ -75,89 +264,132 @@
         <EditForm Model="@productoDto" OnValidSubmit="GuardarProducto">
             <DataAnnotationsValidator />
 
-            <h5 class="mt-3">1. Seleccione la Categoría Fiscal (Wizard)</h5>
-            <div class="row g-3">
-                @foreach (var categoria in ReglasProducto.CategoriasBase)
-                {
-                    <div class="col-md-4" @onclick="() => SelectCategoria(categoria)">
-                        <div class="card-category @(selectedCategoriaId == categoria.Id ? "selected" : "")">
-                            <h6 class="mb-1">@categoria.Nombre</h6>
-                            <small class="text-muted">IVA @(tarifasIva?.FirstOrDefault(t => t.Id == categoria.TarifaIvaIdPorDefecto)?.Porcentaje.ToString("0") ?? "--")%</small>
+            <!-- BLOQUE 1: Categoría Fiscal (Wizard) -->
+            <div class="form-block">
+                <div class="form-block-header">
+                    <span class="icon-wizard">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    </span>
+                    <h5>1. Categorización Inteligente</h5>
+                </div>
+
+                <p class="text-muted" style="font-size: 0.9em; margin-top: -10px;">
+                    Selecciona la categoría. El sistema configurará automáticamente el IVA y si es perecible.
+                </p>
+
+                <div class="row g-3">
+                    @foreach (var categoria in ReglasProducto.CategoriasBase)
+                    {
+                        <div class="col-md-4" @onclick="() => SelectCategoria(categoria)">
+                            <div class="card-category @(selectedCategoriaId == categoria.Id ? "selected" : "")">
+                                <h6 class="mb-1">@categoria.Nombre</h6>
+                                <small class="text-muted">IVA **@(tarifasIva?.FirstOrDefault(t => t.Id == categoria.TarifaIvaIdPorDefecto)?.Porcentaje.ToString("0") ?? "--")%**</small>
+                                <br />
+                                <small class="text-muted">@(categoria.EsPereciblePorDefecto ? "Gestiona Lotes/Caducidad" : "No perecible")</small>
+                            </div>
                         </div>
+                    }
+                </div>
+                @if (selectedCategoriaId == 0)
+                {
+                    <div class="validation-message mt-2">Debe seleccionar una categoría de base.</div>
+                }
+            </div>
+
+            <!-- BLOQUE 2: Identidad del Producto -->
+            <div class="form-block">
+                <div class="form-block-header">
+                    <span class="icon-wizard">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V7a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v15"></path><path d="M12 7v15"></path></svg>
+                    </span>
+                    <h5>2. Identidad Única del Producto</h5>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Nombre Genérico (*)</label>
+                        <InputText @bind-Value="productoDto.NombreGenerico" class="form-control" @oninput="() => CheckUnicidad()" />
+                        <ValidationMessage For="@(() => productoDto.NombreGenerico)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Marca (*)</label>
+                        <InputText @bind-Value="productoDto.Marca" class="form-control" @oninput="() => CheckUnicidad()" />
+                        <ValidationMessage For="@(() => productoDto.Marca)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Presentación (*)</label>
+                        <InputText @bind-Value="productoDto.Presentacion" class="form-control" @oninput="() => CheckUnicidad()" />
+                        <ValidationMessage For="@(() => productoDto.Presentacion)" />
+                    </div>
+                </div>
+
+                @if (unicidadError)
+                {
+                    <div class="alert alert-danger my-3">
+                        ❌ **Error de Unicidad**: Ya existe un producto con esa combinación (Nombre Genérico, Marca, Presentación).
                     </div>
                 }
             </div>
-            @if (selectedCategoriaId == 0)
-            {
-                <div class="validation-message">Debe seleccionar una categoría de base.</div>
-            }
 
-            <h5 class="mt-4">🏷️ Identidad del Producto</h5>
-
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label>Nombre Genérico (*)</label>
-                    <InputText @bind-Value="productoDto.NombreGenerico" class="form-control" @oninput="() => CheckUnicidad()" />
-                    <ValidationMessage For="@(() => productoDto.NombreGenerico)" />
+            <!-- BLOQUE 3: Clasificación, Precio y Códigos -->
+            <div class="form-block">
+                <div class="form-block-header">
+                    <span class="icon-wizard">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>
+                    </span>
+                    <h5>3. Clasificación y Valores</h5>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <label>Marca (*)</label>
-                    <InputText @bind-Value="productoDto.Marca" class="form-control" @oninput="() => CheckUnicidad()" />
-                    <ValidationMessage For="@(() => productoDto.Marca)" />
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label>Presentación (*)</label>
-                    <InputText @bind-Value="productoDto.Presentacion" class="form-control" @oninput="() => CheckUnicidad()" />
-                    <ValidationMessage For="@(() => productoDto.Presentacion)" />
-                </div>
-            </div>
 
-            @if (unicidadError)
-            {
-                <div class="alert alert-danger my-3">
-                    ❌ Error: Ya existe un producto con esa combinación.
-                </div>
-            }
+                <div class="row">
+                    <!-- Fila 1 -->
+                    
 
-            <h5 class="mt-4">📊 Clasificación y Precios</h5>
-
-            <div class="row">
-               
-
-                <div class="col-md-4 mb-3">
-                    <label>Tarifa IVA (*)</label>
-                    <InputSelect @bind-Value="productoDto.TarifaIvaId" class="form-select" disabled="@(!PermiteCambioIVA)">
-                        <option value="0">-- Seleccione --</option>
-                        @if (tarifasIva != null)
-                        {
-                            @foreach (var t in tarifasIva.Where(t => t.Porcentaje == 0 || t.Porcentaje == 15))
+                    <div class="col-md-4 mb-3">
+                        <label>Tarifa IVA (*)</label>
+                        <InputSelect @bind-Value="productoDto.TarifaIvaId" class="form-select" disabled="@(!PermiteCambioIVA)">
+                            <option value="0">-- Seleccione --</option>
+                            @if (tarifasIva != null)
                             {
-                                <option value="@t.Id">@t.Porcentaje.ToString("0")% (Código: @t.CodigoSRI)</option>
+                                @foreach (var t in tarifasIva.Where(t => t.Porcentaje == 0 || t.Porcentaje == 15))
+                                {
+                                    <option value="@t.Id">@t.Porcentaje.ToString("0")% (Código: @t.CodigoSRI)</option>
+                                }
                             }
-                        }
-                    </InputSelect>
-                    <ValidationMessage For="@(() => productoDto.TarifaIvaId)" />
+                        </InputSelect>
+                        <ValidationMessage For="@(() => productoDto.TarifaIvaId)" />
+                    </div>
+
+                    <div class="col-md-4 mb-3 d-flex flex-column justify-content-end">
+                        <label class="mb-2">Es Perecible (Caduca)</label>
+                        <div class="form-check form-switch">
+                            <InputCheckbox @bind-Value="productoDto.EsPerecible" class="form-check-input" type="checkbox" role="switch" id="esPerecibleSwitch" />
+                            <label class="form-check-label" for="esPerecibleSwitch">@productoDto.EsPerecible.ToString()</label>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-md-4 mb-3">
-                    <label>Es Perecible (Caduca)</label>
-                    <InputCheckbox @bind-Value="productoDto.EsPerecible" class="form-check-input" />
+                <div class="row mt-3">
+                    <!-- Fila 2 -->
+                    <div class="col-md-6 mb-3">
+                        <label>Código Principal</label>
+                        <InputText @bind-Value="productoDto.CodigoPrincipal" class="form-control" />
+                        <small class="text-muted">Dejar en blanco para autogenerar. Suele ser el código de barras.</small>
+                        <ValidationMessage For="@(() => productoDto.CodigoPrincipal)" />
+                    </div>
                 </div>
             </div>
 
-            <div class="row">
-                
 
-                <div class="col-md-6 mb-3">
-                    <label>Código Principal</label>
-                    <InputText @bind-Value="productoDto.CodigoPrincipal" class="form-control" />
-                    <small class="text-muted">Dejar en blanco para autogenerar.</small>
-                </div>
-            </div>
-
-            <div class="text-end border-top pt-3 mt-3">
+            <div class="text-end border-top pt-3 mt-4">
                 <button type="submit" class="btn btn-success btn-lg" disabled="@(isSubmitting || unicidadError || selectedCategoriaId == 0)">
-                    Guardar Producto
+                    @if (isSubmitting)
+                    {
+                        <span>Guardando...</span>
+                    }
+                    else
+                    {
+                        <span>Guardar Producto y Continuar a Lotes</span>
+                    }
                 </button>
             </div>
         </EditForm>
@@ -166,7 +398,8 @@
 
 @code {
     [Parameter] public int Id { get; set; } = 0;
-    private CreateProducto productoDto = new() { TipoProducto = "Bien" };
+    // Nota: Es importante que PrecioUnitario esté en el DTO de creación para ser validado.
+    private CreateProducto productoDto = new() { TipoProducto = "Bien", PrecioUnitario = 0m };
     private List<TarifaIva>? tarifasIva;
     private bool isLoading = true;
     private bool isSubmitting = false;
@@ -188,10 +421,13 @@
         {
             tarifasIva = await Http.GetFromJsonAsync<List<TarifaIva>>("api/tarifasiva");
 
-            // Inicializar el IVA con la opción por defecto (15%)
-            productoDto.TarifaIvaId = ReglasProducto.IVA_15_ID;
-            productoDto.EsPerecible = false;
-            selectedCategoriaId = ReglasProducto.CategoriasBase.First(c => c.TarifaIvaIdPorDefecto == ReglasProducto.IVA_15_ID).Id;
+            // Inicializar el DTO con una categoría por defecto si no se ha seleccionado ninguna
+            if (selectedCategoriaId == 0)
+            {
+                // Asume que 15% es el valor predeterminado si no se selecciona nada.
+                var defaultCategoria = ReglasProducto.CategoriasBase.First(c => c.TarifaIvaIdPorDefecto == ReglasProducto.IVA_15_ID);
+                SelectCategoria(defaultCategoria);
+            }
         }
         catch (Exception ex)
         {
@@ -204,15 +440,15 @@
     {
         selectedCategoriaId = categoria.Id;
 
-        // 1. Configuraciones Automáticas
-        productoDto.TarifaIvaId = categoria.TarifaIvaIdPorDefecto;
+        // 1. Configuraciones Automáticas
+        productoDto.TarifaIvaId = categoria.TarifaIvaIdPorDefecto;
         productoDto.EsPerecible = categoria.EsPereciblePorDefecto;
 
-        // 2. Banderas de control
-        PermiteCambioIVA = categoria.PermiteCambioIVA;
+        // 2. Banderas de control
+        PermiteCambioIVA = categoria.PermiteCambioIVA;
 
-        // Re-chequeamos unicidad
-        CheckUnicidad();
+        // Re-chequeamos unicidad
+        CheckUnicidad();
         StateHasChanged();
     }
 
@@ -220,10 +456,10 @@
 
     private async Task CheckUnicidad()
     {
-        // ... (Implementación de unicidad simplificada, ya que no estamos en edición) ...
-        if (string.IsNullOrWhiteSpace(productoDto.NombreGenerico) ||
-      string.IsNullOrWhiteSpace(productoDto.Marca) ||
-      string.IsNullOrWhiteSpace(productoDto.Presentacion))
+        // Solo chequear si los campos clave están llenos
+        if (string.IsNullOrWhiteSpace(productoDto.NombreGenerico) ||
+        string.IsNullOrWhiteSpace(productoDto.Marca) ||
+        string.IsNullOrWhiteSpace(productoDto.Presentacion))
         {
             unicidadError = false;
             return;
@@ -231,13 +467,15 @@
 
         try
         {
+            // Nota: Aquí se asume que el backend usa la descripción (Nombre/Marca/Presentacion) para la unicidad, y se pasa un excludedId=0 para creación.
             var url = $"api/productos/check-unicidad?nombre={productoDto.NombreGenerico}&marca={productoDto.Marca}&presentacion={productoDto.Presentacion}&excludedId=0";
             var existe = await Http.GetFromJsonAsync<bool>(url);
             unicidadError = existe;
         }
         catch (Exception ex)
         {
-            MostrarMensaje($"Error de validación: {ex.Message}", "alert-warning");
+            // Manejo de errores de comunicación, no bloquea el formulario, solo muestra una advertencia.
+            MostrarMensaje($"Error de validación de unicidad: {ex.Message}", "alert-warning");
         }
     }
 
@@ -253,32 +491,15 @@
             HttpResponseMessage response;
             Producto? productoGuardado = null;
 
-            // Mapeo final a CreateProducto para el POST
-            var submitDto = new CreateProducto
-            {
-                CodigoPrincipal = productoDto.CodigoPrincipal ?? string.Empty,
-                NombreGenerico = productoDto.NombreGenerico,
-                Marca = productoDto.Marca,
-                Presentacion = productoDto.Presentacion,
-                TarifaIvaId = productoDto.TarifaIvaId,
-                EsPerecible = productoDto.EsPerecible,
-                TipoProducto = productoDto.TipoProducto,
-                PrecioUnitario = productoDto.PrecioUnitario,
-                CodigoAuxiliar = productoDto.CodigoAuxiliar,
-                CodigoICE = productoDto.CodigoICE,
-                PorcentajeICE = productoDto.PorcentajeICE,
-                CodigoIRBPNR = productoDto.CodigoIRBPNR,
-                PorcentajeIRBPNR = productoDto.PorcentajeIRBPNR,
-            };
-
-            response = await Http.PostAsJsonAsync("api/productos", submitDto);
+            // Se utiliza directamente productoDto en el submit, asegurando que todos los campos requeridos estén llenos.
+            response = await Http.PostAsJsonAsync("api/productos", productoDto);
 
             if (response.IsSuccessStatusCode)
             {
                 productoGuardado = await response.Content.ReadFromJsonAsync<Producto>();
                 MostrarMensaje("✅ Producto guardado. Continuar a registro de lotes.", "alert-success");
-                // Redirigir al detalle de lotes del producto recién creado
-                NavManager.NavigateTo($"/productos/lotes/{productoGuardado!.Id}");
+                // Redirigir al detalle de lotes del producto recién creado
+                NavManager.NavigateTo($"/productos/lotes/{productoGuardado!.Id}");
             }
             else
             {
@@ -298,8 +519,8 @@
 
     private string ExtraerMensajeError(string jsonResponse)
     {
-        // ... (Lógica de extracción de error) ...
-        try
+        // ... (Lógica de extracción de error sin cambios) ...
+        try
         {
             if (!jsonResponse.Trim().StartsWith("{"))
                 return jsonResponse.Trim('"');

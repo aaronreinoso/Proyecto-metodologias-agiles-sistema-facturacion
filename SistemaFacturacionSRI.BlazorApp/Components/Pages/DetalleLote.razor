@@ -9,10 +9,227 @@
 
 <PageTitle>Detalle y Ajuste de Lote N° @LoteId</PageTitle>
 
+<style>
+    /* ------------------------------------------- */
+    /* ESTILOS DE ESTRUCTURA Y FONDO (Consistente con lotes.razor) */
+    /* ------------------------------------------- */
+    .container {
+        max-width: 1100px;
+        margin: 60px auto;
+        padding: 48px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+    }
+
+        .header h1 {
+            font-weight: 800;
+            font-size: 32px;
+            color: #1a1a1a;
+        }
+
+    /* ------------------------------------------- */
+    /* BOTONES */
+    /* ------------------------------------------- */
+    .btn-base {
+        border-radius: 12px;
+        padding: 10px 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+    }
+
+    .btn-primary {
+        /* Azul Degradado */
+        background: linear-gradient(135deg, #0058ff, #4f9eff);
+        color: white;
+        box-shadow: 0 2px 6px rgba(0, 85, 255, 0.25);
+    }
+
+    .btn-secondary {
+        /* Gris claro (Volver/Cancelar) */
+        background: #f1f5f9;
+        color: #111827;
+        border: 1px solid #e2e8f0;
+        box-shadow: none;
+    }
+
+    .btn-danger {
+        /* Rojo para acciones críticas (Ajuste de Stock) */
+        background: linear-gradient(135deg, #dc2626, #ef4444);
+        color: white;
+        box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+    }
+
+        .btn-danger:disabled {
+            opacity: 0.6;
+        }
+
+    /* ------------------------------------------- */
+    /* FORMULARIOS, ALERTAS, Y LABELS (Consistente) */
+    /* ------------------------------------------- */
+    label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .form-control, .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: border-color 0.2s ease;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #0058ff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.1);
+        }
+
+    .alert {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background-color: #e0f2fe;
+        color: #0c4a6e;
+        border-color: #bae6fd;
+    }
+
+    .alert-danger {
+        background-color: #fee2e2;
+        color: #991b1b;
+        border-color: #fca5a5;
+    }
+
+    .alert-success {
+        background-color: #d1fae5;
+        color: #065f46;
+        border-color: #6ee7b7;
+    }
+
+    .alert-warning {
+        background-color: #fef3c7;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
+
+    .text-muted {
+        color: #6b7280;
+    }
+
+    /* ------------------------------------------- */
+    /* TARJETAS DE INFORMACIÓN (Consistente) */
+    /* ------------------------------------------- */
+    .info-card {
+        background-color: #ffffff;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        height: 100%; /* Para que los paneles sean de la misma altura */
+    }
+
+    .info-card-header {
+        font-weight: 700;
+        color: #0058ff;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+
+    .info-card strong {
+        color: #1a1a1a;
+        font-weight: 600;
+    }
+
+    .info-card-body span {
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .info-list-item {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    /* BADGES (Para Stock) */
+    .badge-stock {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 1em;
+        vertical-align: middle;
+        margin-left: 5px;
+        display: inline-block;
+    }
+
+    .bg-success {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    /* Stock OK */
+    .bg-danger {
+        background-color: #fecaca;
+        color: #b91c1c;
+    }
+    /* Stock Crítico */
+
+    /* MODAL */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-box {
+        background: white;
+        border-radius: 18px;
+        padding: 36px;
+        width: 90%;
+        max-width: 550px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 24px;
+    }
+</style>
+
 <div class="container">
-    <div class="header d-flex justify-content-between align-items-center">
+    <div class="header">
         <h1>📦 Detalle de Lote N° @LoteId (@loteActual?.Producto?.Descripcion)</h1>
-        <button class="btn-secondary" @onclick="GoBack">← Volver a Lotes del Producto</button>
+        <button class="btn-secondary btn-base" @onclick="GoBack">← Volver a Lotes del Producto</button>
     </div>
 
     @if (isLoading)
@@ -30,81 +247,130 @@
             <div class="alert @requestClase">@requestMessage</div>
         }
 
-        <div class="card mb-4">
-            <div class="card-header">Información del Lote</div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <strong>Cantidad Actual:</strong> <span class="badge bg-primary fs-5">@loteActual.CantidadActual</span><br />
-                        <strong>P. Compra Unitario:</strong> $@loteActual.PrecioCompraUnitario.ToString("0.00000")
+        <div class="row g-4">
+            <!-- Columna 1: Información del Lote y Botón de Ajuste -->
+            <div class="col-md-5">
+                <div class="info-card">
+                    <div class="info-card-header">
+                        Información Detallada del Lote
                     </div>
-                    <div class="col-md-6">
-                        <strong>Fecha de Registro:</strong> @loteActual.FechaRegistro.ToShortDateString()<br />
+                    <div class="info-card-body">
+                        <span>
+                            <strong>Cantidad Actual:</strong>
+                            <span class="badge-stock @(loteActual.CantidadActual > 0 ? "bg-success" : "bg-danger")">
+                                @loteActual.CantidadActual
+                            </span>
+                        </span>
+                        <span>
+                            <strong>P. Compra Unitario:</strong> $@loteActual.PrecioCompraUnitario.ToString("0.00000")
+                        </span>
+                        <span>
+                            <strong>Costo Total Lote:</strong> $@loteActual.CostoTotalLote.ToString("0.00")
+                        </span>
+                        <hr style="border-color:#e2e8f0; margin: 10px 0;">
+                        <span>
+                            <strong>Fecha de Registro:</strong> @loteActual.FechaRegistro.ToShortDateString()
+                        </span>
                         @if (loteActual.FechaCaducidad.HasValue)
                         {
-                            <strong>Fecha de Caducidad:</strong> @loteActual.FechaCaducidad.Value.ToShortDateString()
+                            <span style="@(loteActual.FechaCaducidad < DateTime.Today.AddMonths(1) ? "color: #dc2626; font-weight: 600;" : "")">
+                                <strong>Fecha de Caducidad:</strong> @loteActual.FechaCaducidad.Value.ToShortDateString()
+                            </span>
                         }
                     </div>
+
+                    <button class="btn-base btn-danger w-100 mt-3" @onclick="OpenAjusteModal">
+                        📊 Nuevo Ajuste Manual (Stock)
+                    </button>
                 </div>
             </div>
-        </div>
 
-        <div class="row">
-            <div class="col-md-5">
-                <h5 class="mt-4">📊 Realizar Ajuste Manual (HU-008)</h5>
-                <p class="text-muted">Corrija las existencias y justifique el cambio.</p>
-
-                <EditForm Model="@ajusteDto" OnValidSubmit="HandleAjusteSubmit">
-                    <DataAnnotationsValidator />
-                    <div class="mb-3">
-                        <label class="form-label">Nueva Cantidad de Existencias (*)</label>
-                        <InputNumber @bind-Value="ajusteDto.CantidadNueva" class="form-control" />
-                        <ValidationMessage For="@(() => ajusteDto.CantidadNueva)" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Justificación (*)</label>
-                        <InputTextArea @bind-Value="ajusteDto.Justificacion" rows="3" class="form-control" />
-                        <ValidationMessage For="@(() => ajusteDto.Justificacion)" />
-                    </div>
-
-                    <button type="submit" class="btn btn-danger w-100" disabled="@isSubmittingAjuste">
-                        @(isSubmittingAjuste ? "Procesando Ajuste..." : "Aplicar Ajuste de Stock")
-                    </button>
-                </EditForm>
-            </div>
-
+            <!-- Columna 2: Historial de Ajustes -->
             <div class="col-md-7">
-                <h5 class="mt-4">📜 Historial de Ajustes</h5>
-                @if (ajustesHistorial == null || !ajustesHistorial.Any())
-                {
-                    <div class="alert alert-info">No se han realizado ajustes manuales a este lote.</div>
-                }
-                else
-                {
-                    <ul class="list-group">
-                        @foreach (var ajuste in ajustesHistorial)
-                        {
-                            <li class="list-group-item">
-                                **@ajuste.FechaAjuste.ToShortDateString()**:
-                                **@ajuste.Diferencia** unidades (@ajuste.CantidadAnterior -> @ajuste.CantidadNueva)<br />
-                                <small class="text-muted">Motivo: @ajuste.Justificacion</small>
-                            </li>
-                        }
-                    </ul>
-                }
+                <div class="info-card">
+                    <div class="info-card-header" style="color:#1f2937;">
+                        📜 Historial de Ajustes
+                    </div>
+                    @if (ajustesHistorial == null || !ajustesHistorial.Any())
+                    {
+                        <div class="alert alert-info">No se han realizado ajustes manuales a este lote.</div>
+                    }
+                    else
+                    {
+                        <div style="max-height: 500px; overflow-y: auto;">
+                            @foreach (var ajuste in ajustesHistorial.OrderByDescending(a => a.FechaAjuste))
+                            {
+                                var diferencia = ajuste.CantidadNueva - ajuste.CantidadAnterior;
+                                var color = diferencia > 0 ? "color: #065f46;" : "color: #b91c1c;";
+                                var signo = diferencia > 0 ? "+" : "";
+
+                                <div class="info-list-item">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <strong style="font-size: 1.1em;">
+                                            @ajuste.FechaAjuste.ToShortDateString()
+                                        </strong>
+                                        <span style="@color; font-weight: 700;">
+                                            @signo@diferencia unidades
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">
+                                        Stock: @ajuste.CantidadAnterior -> @ajuste.CantidadNueva
+                                    </small><br />
+                                    <small class="text-muted">
+                                        Motivo: @ajuste.Justificacion
+                                    </small>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     }
 </div>
+
+@* Modal para Nuevo Ajuste Manual *@
+@if (showAjusteModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-box">
+            <h3 class="mb-4" style="color:#ef4444;">📊 Ajuste Manual de Stock</h3>
+            <p class="text-muted">Cantidad actual del Lote N° @loteActual?.Id: <strong>@loteActual?.CantidadActual</strong> unidades.</p>
+
+            <EditForm Model="@ajusteDto" OnValidSubmit="HandleAjusteSubmit">
+                <DataAnnotationsValidator />
+                <div class="mb-3">
+                    <label class="form-label">Nueva Cantidad de Existencias (*)</label>
+                    <InputNumber @bind-Value="ajusteDto.CantidadNueva" class="form-control" />
+                    <ValidationMessage For="@(() => ajusteDto.CantidadNueva)" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Justificación (*)</label>
+                    <InputTextArea @bind-Value="ajusteDto.Justificacion" rows="3" class="form-control" />
+                    <ValidationMessage For="@(() => ajusteDto.Justificacion)" />
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary btn-base" @onclick="CloseAjusteModal">Cancelar</button>
+                    <button type="submit" class="btn-base btn-danger" disabled="@isSubmittingAjuste">
+                        @(isSubmittingAjuste ? "Procesando Ajuste..." : "Aplicar Ajuste")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
 
 @code {
     [Parameter] public int LoteId { get; set; }
 
     private LoteProducto? loteActual;
     private List<AjusteInventario>? ajustesHistorial; // Se asume que este modelo fue creado
-    private CreateAjusteInventarioDto ajusteDto = new(); 
+    private CreateAjusteInventarioDto ajusteDto = new();
     private bool isLoading = true;
     private bool isSubmittingAjuste = false;
+    private bool showAjusteModal = false; // Nuevo estado para controlar el modal
     private string requestMessage = "";
     private string requestClase = "alert-info";
     private int currentUserId; // Para la auditoría
@@ -117,7 +383,7 @@
         var user = authState.User;
         var idClaim = user.FindFirst(ClaimTypes.NameIdentifier);
         if (idClaim != null) int.TryParse(idClaim.Value, out currentUserId);
-        
+
         await LoadData();
     }
 
@@ -152,6 +418,30 @@
         isLoading = false;
     }
 
+    // --- Lógica del Modal de Ajuste ---
+
+    private void OpenAjusteModal()
+    {
+        // Reinicializar el DTO con la cantidad actual del lote antes de abrir el modal
+        if (loteActual != null)
+        {
+            ajusteDto = new CreateAjusteInventarioDto
+            {
+                LoteProductoId = LoteId,
+                CantidadNueva = loteActual.CantidadActual, // Valor inicial es la cantidad actual
+                Justificacion = ""
+            };
+        }
+        showAjusteModal = true;
+        isSubmittingAjuste = false;
+    }
+
+    private void CloseAjusteModal()
+    {
+        showAjusteModal = false;
+    }
+
+
     private void GoBack()
     {
         // Navega de vuelta a la página de lotes del producto
@@ -173,14 +463,14 @@
             {
                 requestMessage = "✅ Ajuste manual registrado correctamente. Stock actualizado.";
                 requestClase = "alert-success";
-                
+
                 // CUMPLIMIENTO CA-005: Verificar si el stock quedó en cero
                 if (ajusteDto.CantidadNueva == 0)
                 {
-                    // NOTA: Se debe tener una interfaz de edición de producto para cambiar el estado
                     requestMessage += " (Recomendación: Considere cambiar el estado del producto a Inactivo)";
                 }
 
+                CloseAjusteModal(); // Cerrar el modal al finalizar con éxito
                 await LoadData(); // Recargar datos del lote y el historial
             }
             else
