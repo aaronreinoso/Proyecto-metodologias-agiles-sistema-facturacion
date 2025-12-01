@@ -227,11 +227,7 @@
 
             // Campos opcionales (validamos nulos para evitar errores)
             content.Add(new StringContent(modelo.NombreComercial ?? ""), nameof(modelo.NombreComercial));
-            
-            // Corrección: Validación de nulos para evitar excepciones si ambos son nulos
-            var direccionEst = modelo.DireccionEstablecimiento ?? modelo.DireccionMatriz ?? "";
-            content.Add(new StringContent(direccionEst), nameof(modelo.DireccionEstablecimiento));
-            
+            content.Add(new StringContent(modelo.DireccionEstablecimiento ?? modelo.DireccionMatriz), nameof(modelo.DireccionEstablecimiento));
             content.Add(new StringContent(modelo.ContribuyenteEspecial ?? ""), nameof(modelo.ContribuyenteEspecial));
 
             // Solo enviamos la clave si el usuario escribió algo
@@ -275,7 +271,7 @@
             {
                 var error = await response.Content.ReadAsStringAsync();
                 // Limpiamos el mensaje de error si viene en formato JSON
-                MostrarMensaje($"❌ Error: {error.Trim('"')}", "alert-danger");
+                MostrarMensaje($"❌ Error: {error}","alert-danger");
             }
         }
         catch (Exception ex)

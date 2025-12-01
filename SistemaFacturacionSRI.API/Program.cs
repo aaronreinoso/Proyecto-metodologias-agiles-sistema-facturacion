@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.Application.Interfaces;
-using SistemaFacturacionSRI.Infrastructure.Persistence; // La ubicación de tu AppDbContext
+using SistemaFacturacionSRI.Infrastructure.Persistence; // La ubicaciï¿½n de tu AppDbContext
 using SistemaFacturacionSRI.Infrastructure.Services; // para ProductoService y ClienteService
 using SistemaFacturacionSRI.Infrastructure.SRI.Services;
 using System.Text.Json.Serialization;
@@ -9,27 +9,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-// --- INICIO DE CONFIGURACIÓN DE CORS ---
+// --- INICIO DE CONFIGURACIï¿½N DE CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
                       policy =>
                       {
-                          // 2. ¡IMPORTANTE! Usa la URL de tu BlazorApp que anotaste en el Paso 1
+                          // 2. ï¿½IMPORTANTE! Usa la URL de tu BlazorApp que anotaste en el Paso 1
                           policy.WithOrigins("http://localhost:5202")
                                 .AllowAnyHeader()
                                 .AllowAnyMethod();
                       });
 });
-// --- FIN DE CONFIGURACIÓN DE CORS ---
+// --- FIN DE CONFIGURACIï¿½N DE CORS ---
 
-// --- INICIO DE CONFIGURACIÓN DE EF CORE ---
+// --- INICIO DE CONFIGURACIï¿½N DE EF CORE ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("FacturaElectronicaDB"),
-        // Indica a EF Core dónde buscar las migraciones (en el proyecto Infrastructure)
+        // Indica a EF Core dï¿½nde buscar las migraciones (en el proyecto Infrastructure)
         b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)
     ));
-// --- FIN DE CONFIGURACIÓN DE EF CORE ---
+// --- FIN DE CONFIGURACIï¿½N DE EF CORE ---
 
 // --- REGISTRO DE SERVICIOS PERSONALIZADOS
 builder.Services.AddScoped<IClienteService, ClienteService>();
@@ -37,16 +37,14 @@ builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<ILoteProductoService, LoteProductoService>();
 builder.Services.AddScoped<IFacturaService, FacturaService>();
 
-// --- NUEVOS SERVICIOS DE FACTURACIÓN Y SRI ---
-builder.Services.AddScoped<IFacturaService, FacturaService>();
-builder.Services.AddScoped<FacturaElectronicaService>();
+// --- NUEVOS SERVICIOS DE FACTURACIï¿½N Y SRI ---
 builder.Services.AddScoped<ClaveAccesoService>();
 builder.Services.AddScoped<SriSoapClient>();
 
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(x =>
 {
-    // Esta opción evita el bucle infinito ignorando el objeto repetido
+    // Esta opciï¿½n evita el bucle infinito ignorando el objeto repetido
     x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
