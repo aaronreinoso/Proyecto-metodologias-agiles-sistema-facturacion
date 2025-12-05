@@ -1,0 +1,180 @@
+﻿@page "/reportes"
+@using SistemaFacturacionSRI.Domain.DTOs.Reportes
+@inject HttpClient Http
+
+<PageTitle>Dashboard Gerencial</PageTitle>
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4 fw-bold text-dark">📊 Dashboard Gerencial</h2>
+
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm p-3">
+                <h5 class="card-title">Ventas Últimos 30 Días</h5>
+                @if (ventasData != null)
+                {
+                    <ApexChart TItem="ReporteVentasDiariasDto"
+                               Title="Tendencia de Ventas"
+                               Options="optionsVentas">
+
+                        <ApexPointSeries TItem="ReporteVentasDiariasDto"
+                                         Items="ventasData"
+                                         Name="Ventas ($)"
+                                         XValue="@(e => e.Fecha.ToString("dd/MM"))"
+                                         YAggregate="@(e => e.Sum(s => s.TotalVendido))"
+                                         SeriesType="SeriesType.Area"
+                                         Color="#0d6efd" />
+                    </ApexChart>
+                }
+                else
+                {
+                    <p>Cargando datos de ventas...</p>
+                }
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm p-3">
+                <h5 class="card-title">Top 5 Productos</h5>
+                @if (topProductos != null)
+                {
+                    <ApexChart TItem="ReporteTopProductoDto"
+                               Title="Más Vendidos"
+                               Options="optionsDonut">
+
+                        <ApexPointSeries TItem="ReporteTopProductoDto"
+                                         Items="topProductos"
+                                         Name="Unidades"
+                                         XValue="@(e => e.Producto)"
+                                         YAggregate="@(e => e.Sum(s => s.CantidadTotal))"
+                                         SeriesType="SeriesType.Donut" />
+                    </ApexChart>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    ⚠️ Alerta: Lotes Próximos a Caducar (60 días)
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Lote</th>
+                                <th>Caduca el</th>
+                                <th>Días Restantes</th>
+                                <th>Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (caducidadData != null)
+                            {
+                                @foreach (var lote in caducidadData)
+                                {
+                                    <tr>
+                                        <td>@lote.Producto</td>
+                                        <td>@lote.Lote</td>
+                                        <td>@lote.FechaCaducidad.ToShortDateString()</td>
+                                        <td class="@(lote.DiasRestantes < 15 ? "fw-bold text-danger" : "")">
+                                            @lote.DiasRestantes días
+                                        </td>
+                                        <td>@lote.Stock</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    @* Inserta este bloque después de la tabla de Caducidad *@
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm p-3">
+                <h5 class="card-title">💵 Utilidad Bruta y Margen (Últimos 30 Días)</h5>
+                @if (gananciaData != null)
+                {
+                    <ApexChart TItem="ReporteGananciaDiariaDto" Title="Ganancias vs Costos">
+
+                        <ApexPointSeries TItem="ReporteGananciaDiariaDto"
+                                         Items="gananciaData"
+                                         Name="Venta Bruta"
+                                         XValue="@(e => e.Fecha.ToString("dd/MM"))"
+                                         YAggregate="@(e => e.Sum(s => s.VentaBruta))"
+                                         SeriesType="SeriesType.Bar"
+                                         Color="#198754" />
+
+                        <ApexPointSeries TItem="ReporteGananciaDiariaDto"
+                                         Items="gananciaData"
+                                         Name="Costo Total"
+                                         XValue="@(e => e.Fecha.ToString("dd/MM"))"
+                                         YAggregate="@(e => e.Sum(s => s.CostoTotal))"
+                                         SeriesType="SeriesType.Bar"
+                                         Color="#dc3545" />
+
+                    </ApexChart>
+
+
+                    <div class="alert alert-info mt-3 fw-bold">
+                        Total Utilidad en el período: $@gananciaData.Sum(g => g.UtilidadBruta).ToString("F2")
+
+                        @* ⭐ FIX: Usar una variable local para el promedio y chequear si hay ventas *@
+                        @{
+                            // Filtramos solo los días con ventas > 0
+                            var diasConVenta = gananciaData.Where(g => g.VentaBruta > 0);
+
+                            // Si hay ventas, calculamos el promedio. Si no, es 0.
+                            decimal promedioMargen = diasConVenta.Any()
+                            ? diasConVenta.Average(g => g.MargenPorcentual)
+                            : 0m;
+                        }
+
+                        (Margen promedio: @promedioMargen.ToString("F2")%)
+                    </div>
+
+                }
+                else
+                {
+                    <p>Cargando datos de ganancias...</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ReporteVentasDiariasDto>? ventasData;
+    private List<ReporteTopProductoDto>? topProductos;
+    private List<ReporteCaducidadDto>? caducidadData;
+
+    private List<ReporteGananciaDiariaDto>? gananciaData;
+
+    private ApexChartOptions<ReporteVentasDiariasDto> optionsVentas = new();
+    private ApexChartOptions<ReporteTopProductoDto> optionsDonut = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargar los 3 reportes en paralelo para mayor velocidad
+        var t1 = Http.GetFromJsonAsync<List<ReporteVentasDiariasDto>>("api/reportes/ventas-mensuales");
+        var t2 = Http.GetFromJsonAsync<List<ReporteTopProductoDto>>("api/reportes/top-productos");
+        var t3 = Http.GetFromJsonAsync<List<ReporteCaducidadDto>>("api/reportes/proximos-a-caducar");
+        var t4 = Http.GetFromJsonAsync<List<ReporteGananciaDiariaDto>>("api/reportes/ganancias-mensuales");
+
+        await Task.WhenAll(t1, t2, t3, t4);
+
+        ventasData = await t1;
+        topProductos = await t2;
+        caducidadData = await t3;
+
+        // ⭐ Asignación
+        gananciaData = await t4;
+    }
+}

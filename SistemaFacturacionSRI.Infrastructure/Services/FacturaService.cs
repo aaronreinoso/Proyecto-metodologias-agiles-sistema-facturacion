@@ -59,7 +59,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 };
 
                 decimal subtotalFactura = 0;
-                decimal totalIvaFactura = 0;
+                decimal totalIvaFactura = 0; 
 
                 // =============================================================================
                 // PASO 2: PROCESAR DETALLES, LÓGICA FIFO Y CÁLCULOS
@@ -77,6 +77,8 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     if (producto.Stock < item.Cantidad)
                         throw new Exception($"Stock insuficiente para el producto: {producto.Descripcion}. Stock actual: {producto.Stock}");
 
+                    decimal costoTotalLotesConsumidos = 0;
+
                     // --- LÓGICA FIFO (First-In, First-Out) PARA LOTES ---
                     var lotesDisponibles = await _context.LotesProducto
                         .Where(l => l.ProductoId == item.ProductoId && l.CantidadActual > 0)
@@ -91,6 +93,10 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                         int aTomar = Math.Min(cantidadPorDescontar, lote.CantidadActual);
 
+                        // ⭐ AGREGADO: Acumular el costo de las unidades tomadas del lote actual
+                        costoTotalLotesConsumidos += aTomar * lote.PrecioCompraUnitario;
+
+
                         // Descontar del lote
                         lote.CantidadActual -= aTomar;
                         cantidadPorDescontar -= aTomar;
@@ -104,8 +110,15 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         throw new Exception($"Inconsistencia crítica: El stock global indicaba disponibilidad, pero no hay suficientes lotes para el producto {producto.Descripcion}.");
                     }
 
+
+                    // ⭐ NUEVO: Calcular el Costo Unitario Promedio Ponderado de la venta
+                    // Esto promedia el costo si se consumieron unidades de lotes con diferentes precios de compra
+                    decimal costoUnitarioPonderado = costoTotalLotesConsumidos / item.Cantidad;
+
                     // Actualizar Stock Global
                     producto.Stock -= item.Cantidad;
+
+
 
                     // --- CÁLCULOS MONETARIOS ---
                     decimal subtotalLinea = item.Cantidad * producto.PrecioUnitario;
@@ -124,6 +137,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         Cantidad = item.Cantidad,
                         PrecioUnitario = producto.PrecioUnitario,
                         Subtotal = subtotalLinea,
+                        CostoUnitario = costoUnitarioPonderado, // ⭐ ASIGNACIÓN CRÍTICA
                         // Guardamos referencia del producto para usarla en el mapeo XML sin consultar la BD de nuevo
                         Producto = producto
                     });

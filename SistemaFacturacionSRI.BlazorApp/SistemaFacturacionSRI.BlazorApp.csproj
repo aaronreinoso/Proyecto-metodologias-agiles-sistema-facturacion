@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Blazor-ApexCharts" Version="6.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SistemaFacturacionSRI.Domain\SistemaFacturacionSRI.Domain.csproj" />
   </ItemGroup>
 

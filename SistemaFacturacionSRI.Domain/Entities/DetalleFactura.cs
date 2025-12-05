@@ -23,5 +23,8 @@ namespace SistemaFacturacionSRI.Domain.Entities
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal Subtotal { get; set; }
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal CostoUnitario { get; set; }
     }
 }
