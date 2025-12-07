@@ -13,7 +13,7 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Models
         public string Id { get; set; } = "comprobante";
 
         [XmlAttribute("version")]
-        public string Version { get; set; } = "1.0.0"; // O "1.1.0" según ficha técnica
+        public string Version { get; set; } = "1.1.0"; // ACTUALIZADO a 1.1.0
 
         [XmlElement("infoTributaria")]
         public InfoTributaria InfoTributaria { get; set; } = new();
@@ -29,6 +29,12 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Models
         [XmlArray("infoAdicional")]
         [XmlArrayItem("campoAdicional")]
         public List<CampoAdicional> InfoAdicional { get; set; } = new();
+
+        
+        public bool ShouldSerializeInfoAdicional()
+        {
+            return InfoAdicional != null && InfoAdicional.Count > 0;
+        }
     }
 
     public class InfoTributaria
