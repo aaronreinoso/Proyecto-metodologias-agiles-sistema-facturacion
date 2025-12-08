@@ -13,23 +13,34 @@
 
     <script src="_content/Blazor-ApexCharts/js/apex-charts.min.js"></script>
     <script src="_content/Blazor-ApexCharts/js/blazor-apex-charts.js"></script>
-
 </head>
 
 <body>
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
-</body>
 
-<script>
-    window.descargarArchivo = (nombre, contenidoBase64, mimeType) => {
-        const link = document.createElement('a');
-        link.download = nombre;
-        link.href = `data:${mimeType};base64,${contenidoBase64}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-</script>
+    <script>
+        window.descargarArchivo = (nombre, contenidoBase64, mimeType) => {
+            const link = document.createElement('a');
+            link.download = nombre;
+            link.href = `data:${mimeType};base64,${contenidoBase64}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.abrirPdfEnPestana = (contenidoBase64) => {
+            const byteCharacters = atob(contenidoBase64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        };
+    </script>
+</body>
 
 </html>

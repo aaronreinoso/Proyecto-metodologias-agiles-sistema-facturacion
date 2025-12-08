@@ -39,7 +39,6 @@ builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<ILoteProductoService, LoteProductoService>();
 builder.Services.AddScoped<IFacturaService, FacturaService>();
-builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<FacturaElectronicaService>(); // Para lógica de XML y firma
@@ -47,6 +46,8 @@ builder.Services.AddScoped<FacturaElectronicaService>(); // Para lógica de XML 
 // --- SERVICIOS DE FACTURACIÓN Y SRI ---
 builder.Services.AddScoped<ClaveAccesoService>();
 builder.Services.AddScoped<SriSoapClient>();
+//factura
+builder.Services.AddScoped<IPdfService, PdfService>();
 
 builder.Services.AddHostedService<SriRetryWorker>();
 

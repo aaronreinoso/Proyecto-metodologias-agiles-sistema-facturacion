@@ -58,7 +58,7 @@
                     <th>Total</th>
                     <th>Estado SRI</th>
                     <th>Mensaje / Error</th>
-                    <th class="text-center" style="min-width: 180px;">Acciones</th>
+                    <th class="text-center" style="min-width: 200px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -108,22 +108,18 @@
                                 <div class="btn-group" role="group">
                                     @if (f.EstadoSRI == "AUTORIZADO")
                                     {
-                                        @* BOTÓN CREAR NOTA DE CRÉDITO *@
                                         <a href="crear-nc/@f.Id" class="btn btn-warning btn-sm" title="Crear Nota de Crédito">
                                             <i class="bi bi-arrow-return-left"></i>
                                         </a>
 
-                                        @* BOTÓN VER HISTORIAL NOTAS CRÉDITO *@
                                         <a href="ver-nc/@f.Id" class="btn btn-info btn-sm text-white" title="Ver Notas de Crédito">
                                             <i class="bi bi-list-check"></i>
                                         </a>
 
-                                        @* BOTÓN VER PDF *@
-                                        <a href="@Navigation.ToAbsoluteUri($"api/facturas/{f.Id}/pdf")" target="_blank" class="btn btn-sm btn-danger" title="Ver PDF">
+                                        <button class="btn btn-sm btn-danger" @onclick="() => VerPdf(f.Id)" title="Ver RIDE (PDF)">
                                             <i class="bi bi-file-pdf"></i>
-                                        </a>
+                                        </button>
 
-                                        @* BOTÓN REENVIAR EMAIL *@
                                         <button class="btn btn-sm btn-primary" @onclick="() => ReenviarCorreo(f.Id)" title="Reenviar Email">
                                             <i class="bi bi-envelope"></i>
                                         </button>
@@ -186,10 +182,30 @@
         }
     }
 
+    // --- LÓGICA PARA DESCARGAR EL PDF (NUEVO) ---
+    private async Task VerPdf(int facturaId)
+    {
+        try
+        {
+            // Solicitamos el PDF a NUESTRA API (no al SRI)
+            var pdfBytes = await Http.GetByteArrayAsync($"api/facturas/{facturaId}/pdf");
+
+            // Convertimos a Base64
+            var base64 = Convert.ToBase64String(pdfBytes);
+
+            // Abrimos en nueva pestaña usando JS
+            await JS.InvokeVoidAsync("abrirPdfEnPestana", base64);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Error al generar el PDF: " + ex.Message);
+        }
+    }
+
     private async Task ReintentarSri(int id)
     {
-        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Deseas intentar enviar esta factura al SRI nuevamente?");
-        if (!confirmar) return;
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Deseas intentar enviar esta factura al SRI nuevamente?");
+        if (!confirm) return;
 
         try
         {
