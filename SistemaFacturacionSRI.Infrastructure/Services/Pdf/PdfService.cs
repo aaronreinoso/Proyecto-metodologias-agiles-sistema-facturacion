@@ -3,6 +3,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.Entities;
+using QRCoder;
 
 namespace SistemaFacturacionSRI.Infrastructure.Services.Pdf
 {
@@ -43,29 +44,46 @@ namespace SistemaFacturacionSRI.Infrastructure.Services.Pdf
         {
             container.Row(row =>
             {
-                // Lado Izquierdo: Datos Emisor
-                row.RelativeItem().Column(column =>
+                // COLUMNA 1: LOGO Y DATOS EMISOR (Izquierda)
+                row.RelativeItem(5).Column(column =>
                 {
-                    column.Item().Text(config.RazonSocial).FontSize(16).SemiBold().FontColor(Colors.Blue.Medium);
-                    column.Item().Text($"RUC: {config.Ruc}");
-                    column.Item().Text($"Dir: {config.DireccionMatriz}");
-                    column.Item().Text("Obligado a llevar contabilidad: SI");
+                    // Si tuvieras logo: column.Item().Image(logoBytes).Width(150);
+                    column.Item().Text(config.RazonSocial).FontSize(14).SemiBold().FontColor(Colors.Blue.Medium);
+                    column.Item().Text($"RUC: {config.Ruc}").FontSize(10);
+                    column.Item().Text($"Dir: {config.DireccionMatriz}").FontSize(10);
+                    column.Item().Text("Obligado a llevar contabilidad: SI").FontSize(10);
+
+                    if (!string.IsNullOrEmpty(config.ContribuyenteEspecial))
+                    {
+                        column.Item().Text($"Contribuyente Especial Nro: {config.ContribuyenteEspecial}").FontSize(10);
+                    }
                 });
 
-                // Lado Derecho: Datos Factura
-                row.RelativeItem().Column(column =>
+                // COLUMNA 2: DATOS FACTURA Y QR (Derecha)
+                row.RelativeItem(4).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).Column(column =>
                 {
-                    column.Item().Text("R.U.C.: " + config.Ruc).Bold();
-                    column.Item().Text("FACTURA").FontSize(14).Bold();
-                    // Aquí deberías formatear el número completo
-                    column.Item().Text($"No. {config.CodigoEstablecimiento}-{config.CodigoPuntoEmision}-{factura.Id.ToString("D9")}");
-                    column.Item().Text($"AUTORIZACIÓN: {factura.FechaAutorizacion}");
-                    column.Item().Text($"CLAVE ACCESO:").FontSize(8);
-                    column.Item().Text(factura.ClaveAcceso).FontSize(8);
+                    column.Item().Text($"R.U.C.: {config.Ruc}").Bold().FontSize(12);
+                    column.Item().Text("FACTURA").FontSize(12).Bold();
+
+                    string numeroFactura = $"{config.CodigoEstablecimiento}-{config.CodigoPuntoEmision}-{factura.Id:D9}";
+                    column.Item().Text($"No. {numeroFactura}").FontSize(11);
+
+                    column.Item().Text($"AUTORIZACIÓN:").FontSize(9).FontColor(Colors.Grey.Darken1);
+                    // Aquí iría el número de autorización real si ya fue autorizado, por ahora usamos la fecha
+                    column.Item().Text($"{factura.FechaAutorizacion}").FontSize(9);
+
+                    column.Item().Text("CLAVE DE ACCESO:").FontSize(9).FontColor(Colors.Grey.Darken1);
+                    column.Item().Text(factura.ClaveAcceso).FontSize(8).SemiBold();
+
+                    // --- AQUÍ INSERTAMOS EL QR ---
+                    if (!string.IsNullOrEmpty(factura.ClaveAcceso))
+                    {
+                        column.Item().PaddingTop(5).AlignRight().Width(80).Image(GenerarCodigoQR(factura.ClaveAcceso));
+                    }
+                    // -----------------------------
                 });
             });
         }
-
         private void ComponerContenido(IContainer container, Factura factura)
         {
             container.PaddingVertical(10).Column(column =>
@@ -127,5 +145,27 @@ namespace SistemaFacturacionSRI.Infrastructure.Services.Pdf
         {
             return container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5);
         }
+
+        private byte[] GenerarCodigoQR(string texto)
+        {
+            if (string.IsNullOrEmpty(texto)) return Array.Empty<byte>();
+
+            // 1. Crear el generador
+            using var qrGenerator = new QRCodeGenerator();
+
+            // 2. Generar los datos del QR (Nivel Q es buena calidad)
+            using var qrCodeData = qrGenerator.CreateQrCode(texto, QRCodeGenerator.ECCLevel.Q);
+
+            // 3. Renderizar a PNG (Byte Array) - No requiere System.Drawing
+            using var qrCode = new PngByteQRCode(qrCodeData);
+
+            // "20" es los píxeles por módulo (tamaño de la imagen)
+            return qrCode.GetGraphic(20);
+        }
+
     }
+
+
+
+
 }
