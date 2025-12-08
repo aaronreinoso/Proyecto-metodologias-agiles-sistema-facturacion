@@ -135,5 +135,25 @@ namespace SistemaFacturacionSRI.API.Controllers
                 return BadRequest(new { message = "Error enviando correo: " + ex.Message });
             }
         }
+
+
+
+        [HttpPost("{id}/reintentar-sri")]
+        public async Task<IActionResult> ReintentarSri(int id)
+        {
+            try
+            {
+                // Una sola línea que hace toda la magia
+                await _facturaService.ReintentarFacturaAsync(id);
+
+                return Ok(new { message = "Reintento procesado correctamente." });
+            }
+            catch (Exception ex)
+            {
+                // El servicio lanzará excepción si falla la recepción o validación
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
     }
 }

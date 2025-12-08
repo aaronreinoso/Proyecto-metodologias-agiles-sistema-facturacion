@@ -99,20 +99,26 @@
                                     <span class="text-muted">-</span>
                                 }
                             </td>
-
                             <td class="text-center">
-                                <a href="@($"/api/facturas/{f.Id}/pdf")"
-                                   target="_blank"
-                                   class="btn btn-sm btn-danger me-1"
-                                   title="Ver PDF">
-                                    <i class="bi bi-file-pdf"></i>
-                                </a>
-
-                                <button class="btn btn-sm btn-primary"
-                                        @onclick="() => ReenviarCorreo(f.Id)"
-                                        title="Enviar al correo del cliente">
-                                    <i class="bi bi-envelope"></i>
-                                </button>
+                                @if (f.EstadoSRI == "AUTORIZADO")
+                                {
+                                    <a href="@($"/api/facturas/{f.Id}/pdf")" target="_blank" class="btn btn-sm btn-danger me-1" title="Ver PDF">
+                                        <i class="bi bi-file-pdf"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-primary" @onclick="() => ReenviarCorreo(f.Id)" title="Reenviar Email">
+                                        <i class="bi bi-envelope"></i>
+                                    </button>
+                                }
+                                else if (f.EstadoSRI != "RECHAZADA")
+                                {
+                                    <button class="btn btn-sm btn-warning text-dark" @onclick="() => ReintentarSri(f.Id)" title="Forzar envío al SRI">
+                                        <i class="bi bi-arrow-clockwise"></i> Enviar SRI
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-danger small fw-bold">Rechazada</span>
+                                }
                             </td>
                         </tr>
                     }
@@ -135,6 +141,31 @@
     {
         await CargarDatos();
     }
+
+    // ... dentro de @code ...
+
+    private async Task ReintentarSri(int id)
+    {
+        // 1. Feedback inmediato al usuario
+        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Deseas intentar enviar esta factura al SRI nuevamente?");
+        if (!confirmar) return;
+
+        // 2. Llamada al API
+        var response = await Http.PostAsync($"api/facturas/{id}/reintentar-sri", null);
+
+        if (response.IsSuccessStatusCode)
+        {
+            await JS.InvokeVoidAsync("alert", "✅ Se ha enviado la solicitud de reintento. Actualiza la tabla en unos segundos.");
+            // Opcional: Recargar la tabla automáticamente
+            await CargarDatos();
+        }
+        else
+        {
+            var msj = await response.Content.ReadAsStringAsync();
+            await JS.InvokeVoidAsync("alert", "❌ No se pudo procesar: " + msj);
+        }
+    }
+
 
     private async Task CargarDatos()
     {

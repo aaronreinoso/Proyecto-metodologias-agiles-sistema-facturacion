@@ -11,5 +11,9 @@ namespace SistemaFacturacionSRI.Application.Interfaces
 
         // --- AGREGAR ESTA LÍNEA ---
         Task<List<FacturaResumenDto>> ObtenerHistorialFacturasAsync();
+
+        Task ProcesarFacturasPendientesSriAsync();
+
+        Task ReintentarFacturaAsync(int id);
     }
 }

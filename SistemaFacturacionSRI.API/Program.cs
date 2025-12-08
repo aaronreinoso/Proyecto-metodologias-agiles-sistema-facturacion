@@ -8,6 +8,7 @@ using SistemaFacturacionSRI.Infrastructure.Services.Pdf;
 using SistemaFacturacionSRI.Infrastructure.SRI.Services;
 using System.Text;
 using System.Text.Json.Serialization;
+using SistemaFacturacionSRI.API.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,9 @@ builder.Services.AddScoped<FacturaElectronicaService>(); // Para lógica de XML 
 // --- SERVICIOS DE FACTURACIÓN Y SRI ---
 builder.Services.AddScoped<ClaveAccesoService>();
 builder.Services.AddScoped<SriSoapClient>();
+
+builder.Services.AddHostedService<SriRetryWorker>();
+
 
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(x =>
