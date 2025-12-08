@@ -1,4 +1,5 @@
-﻿@page "/login"
+﻿@page "/"
+@page "/login"
 @using Microsoft.AspNetCore.Components.Authorization
 @using SistemaFacturacionSRI.Domain.Entities
 @using SistemaFacturacionSRI.BlazorApp.Auth
@@ -203,7 +204,7 @@
     {
         public string Token { get; set; } = "";
         public string Usuario { get; set; } = "";
-        public string Rol { get; set; } = "";
+        public string Rol { get; set; } = ""; 
     }
 
     private async Task HandleLogin()
@@ -222,7 +223,7 @@
                 // Notificar al sistema de autenticación
                 await AuthStateProvider.GetAuthenticationStateAsync();
 
-                NavManager.NavigateTo("/");
+                NavManager.NavigateTo("/home");
             }
             else
             {
