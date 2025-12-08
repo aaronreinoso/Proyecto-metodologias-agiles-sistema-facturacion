@@ -6,6 +6,7 @@ using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 using SistemaFacturacionSRI.Infrastructure.SRI.Services;
 using SistemaFacturacionSRI.Infrastructure.Helpers;
+using SistemaFacturacionSRI.Infrastructure.SRI.Models;
 
 namespace SistemaFacturacionSRI.Infrastructure.Services
 {
@@ -15,29 +16,27 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
         private readonly FacturaElectronicaService _facturaElectronicaService;
         private readonly SriSoapClient _sriClient;
 
-        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        // NUEVOS CAMPOS AGREGADOS (PDF + EMAIL)
+        // Servicios adicionales: PDF + Email
         private readonly IPdfService _pdfService;
         private readonly IEmailService _emailService;
-        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         public FacturaService(
             AppDbContext context,
             FacturaElectronicaService facturaElectronicaService,
             SriSoapClient sriClient,
-            IPdfService pdfService,        // <<< NUEVO
-            IEmailService emailService     // <<< NUEVO
-        )
+            IPdfService pdfService,
+            IEmailService emailService)
         {
             _context = context;
             _facturaElectronicaService = facturaElectronicaService;
             _sriClient = sriClient;
-
-            // <<< NUEVAS ASIGNACIONES >>>
             _pdfService = pdfService;
             _emailService = emailService;
         }
 
+        // ============================================================
+        //  CREAR FACTURA + INTEGRACIÓN COMPLETA CON SRI
+        // ============================================================
         public async Task<Factura> CrearFacturaAsync(CreateFacturaDto dto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -59,7 +58,8 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 // PASO 1: VALIDACIONES Y CREACIÓN INICIAL
                 // =====================================================================
                 var cliente = await _context.Clientes.FindAsync(dto.ClienteId);
-                if (cliente == null) throw new Exception("Cliente no encontrado.");
+                if (cliente == null)
+                    throw new Exception("Cliente no encontrado.");
 
                 var nuevaFactura = new Factura
                 {
@@ -82,7 +82,8 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         .Include(p => p.TarifaIva)
                         .FirstOrDefaultAsync(p => p.Id == item.ProductoId);
 
-                    if (producto == null) throw new Exception($"Producto ID {item.ProductoId} no existe.");
+                    if (producto == null)
+                        throw new Exception($"Producto ID {item.ProductoId} no existe.");
 
                     if (producto.Stock < item.Cantidad)
                         throw new Exception($"Stock insuficiente para el producto: {producto.Descripcion}. Stock actual: {producto.Stock}");
@@ -140,37 +141,59 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 nuevaFactura.Total = subtotalFactura + totalIvaFactura;
                 nuevaFactura.Cliente = cliente;
 
+                // Guardar para obtener Id/Secuencial
                 _context.Facturas.Add(nuevaFactura);
                 await _context.SaveChangesAsync();
 
                 // =====================================================================
-                // PASO 4: XML -> FIRMA -> ENVÍO SRI
+                // PASO 4: XML -> FIRMA DIGITAL -> SRI
                 // =====================================================================
 
+                // A. Desencriptar clave de la firma
                 string claveFirmaDesencriptada = EncryptionHelper.Decrypt(configEmpresa.ClaveFirma);
+
+                // B. Generar XML firmado
                 byte[] xmlBytes = _facturaElectronicaService.GenerarXmlFirmado(
-                    nuevaFactura, configEmpresa, claveFirmaDesencriptada);
+                    nuevaFactura,
+                    configEmpresa,
+                    claveFirmaDesencriptada);
 
                 nuevaFactura.XmlGenerado = Encoding.UTF8.GetString(xmlBytes);
 
-                string respuestaRecepcion = await _sriClient.EnviarRecepcionAsync(xmlBytes);
+                // =====================================================================
+                // FASE A: ENVÍO A RECEPCIÓN (Validación de estructura y datos)
+                // =====================================================================
+                string respuestaRecepcionRaw = await _sriClient.EnviarRecepcionAsync(xmlBytes);
+                var respuestaRecepcion = XmlHelper.Deserialize<RespuestaSolicitud>(respuestaRecepcionRaw);
 
-                if (respuestaRecepcion.Contains("RECIBIDA"))
+                if (respuestaRecepcion != null && respuestaRecepcion.Estado == "RECIBIDA")
                 {
+                    // RECEPCIÓN CORRECTA
                     nuevaFactura.EstadoSRI = "RECIBIDA";
 
+                    // Pausa breve para procesamiento interno del SRI
                     await Task.Delay(1500);
 
-                    string respuestaAutorizacion = await _sriClient.EnviarAutorizacionAsync(nuevaFactura.ClaveAcceso);
+                    // =================================================================
+                    // FASE B: SOLICITUD DE AUTORIZACIÓN
+                    // =================================================================
+                    string respuestaAuthRaw = await _sriClient.EnviarAutorizacionAsync(nuevaFactura.ClaveAcceso);
+                    var respuestaAuth = XmlHelper.Deserialize<RespuestaAutorizacion>(respuestaAuthRaw);
 
-                    if (respuestaAutorizacion.Contains("AUTORIZADO"))
+                    var autorizacion = respuestaAuth?.Autorizaciones?.FirstOrDefault();
+
+                    if (autorizacion != null && autorizacion.Estado == "AUTORIZADO")
                     {
                         nuevaFactura.EstadoSRI = "AUTORIZADO";
                         nuevaFactura.Estado = "Autorizada";
+
+                        // Si tu modelo tiene fecha de autorización, puedes mapearla.
+                        // Por simplicidad, usamos ahora:
                         nuevaFactura.FechaAutorizacion = DateTime.Now;
 
-                        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                        // NUEVO BLOQUE: GENERAR PDF Y ENVIAR CORREO AL CLIENTE
+                        // -------------------------------------------------------------
+                        //  PDF + ENVÍO DE CORREO (SE MANTIENE TU LÓGICA)
+                        // -------------------------------------------------------------
                         try
                         {
                             var pdfBytes = _pdfService.GenerarFacturaPdf(nuevaFactura, configEmpresa);
@@ -191,20 +214,56 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         {
                             Console.WriteLine("Error enviando factura por correo: " + ex.Message);
                         }
-                        // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                     }
                     else
                     {
+                        // CASO: NO AUTORIZADO (Reglas de negocio, deudas SRI, etc.)
                         nuevaFactura.EstadoSRI = "RECHAZADA";
                         nuevaFactura.Estado = "Rechazada";
-                        nuevaFactura.MensajeErrorSRI = "El SRI rechazó la autorización.";
+
+                        var msgError = "SRI No Autorizó.";
+                        if (autorizacion?.Mensajes != null)
+                        {
+                            var detalles = autorizacion.Mensajes
+                                .Select(m => $"{m.Mensaje} ({m.InformacionAdicional})");
+                            msgError = string.Join("; ", detalles);
+                        }
+
+                        nuevaFactura.MensajeErrorSRI = msgError;
                     }
                 }
                 else
                 {
+                    // CASO: DEVUELTA EN RECEPCIÓN (XML mal formado, firma inválida, clave duplicada, etc.)
                     nuevaFactura.EstadoSRI = "DEVUELTA";
                     nuevaFactura.Estado = "Devuelta";
-                    nuevaFactura.MensajeErrorSRI = "Error en recepción: " + respuestaRecepcion;
+
+                    string msgError = "Error en Recepción.";
+
+                    if (respuestaRecepcion?.Comprobantes != null)
+                    {
+                        var listaErrores = new List<string>();
+
+                        foreach (var comp in respuestaRecepcion.Comprobantes)
+                        {
+                            if (comp.Mensajes != null)
+                            {
+                                foreach (var m in comp.Mensajes)
+                                {
+                                    listaErrores.Add($"{m.Identificador}: {m.Mensaje} - {m.InformacionAdicional}");
+                                }
+                            }
+                        }
+
+                        if (listaErrores.Any())
+                            msgError = string.Join(" | ", listaErrores);
+                    }
+                    else
+                    {
+                        msgError = "Error de conexión o formato SRI desconocido.";
+                    }
+
+                    nuevaFactura.MensajeErrorSRI = msgError;
                 }
 
                 _context.Facturas.Update(nuevaFactura);
@@ -213,16 +272,16 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 await transaction.CommitAsync();
                 return nuevaFactura;
             }
-            catch (Exception)
+            catch
             {
                 await transaction.RollbackAsync();
                 throw;
             }
         }
 
-        // ================================================================
-        // HISTORIAL DE FACTURAS (NO SE MODIFICÓ NADA)
-        // ================================================================
+        // ============================================================
+        //  HISTORIAL DE FACTURAS
+        // ============================================================
         public async Task<List<FacturaResumenDto>> ObtenerHistorialFacturasAsync()
         {
             var config = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
@@ -252,97 +311,119 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
         }
 
 
-
-
+        // ============================================================
+        //  PROCESAR FACTURAS PENDIENTES CON EL SRI (JOB/MANUAL)
+        // ============================================================
         public async Task ProcesarFacturasPendientesSriAsync()
         {
-            // 1. Buscar facturas que quedaron en 'RECIBIDA' (Falta autorización)
-            //    o 'PENDIENTE' con XML generado pero sin respuesta (Error de red inicial)
             var facturasEstancadas = await _context.Facturas
-                .Where(f => (f.EstadoSRI == "RECIBIDA" || (f.EstadoSRI == "PENDIENTE" && f.XmlGenerado != null))
-                            && f.Estado != "Autorizada"
-                            && f.Estado != "Rechazada")
+                .Where(f =>
+                    (f.EstadoSRI == "RECIBIDA" || (f.EstadoSRI == "PENDIENTE" && f.XmlGenerado != null))
+                    && f.Estado != "Autorizada"
+                    && f.Estado != "Rechazada")
                 .ToListAsync();
 
             foreach (var factura in facturasEstancadas)
             {
+                // Usamos un bloque try/catch por factura para que si una falla, las demás sigan
                 try
                 {
-                    // CASO A: Si está PENDIENTE, intentamos enviarla primero (Recepción)
+                    // CASO A: Si está PENDIENTE, intentamos Recepción
                     if (factura.EstadoSRI == "PENDIENTE")
                     {
-                        byte[] xmlBytes = System.Text.Encoding.UTF8.GetBytes(factura.XmlGenerado);
-                        string respuestaRecepcion = await _sriClient.EnviarRecepcionAsync(xmlBytes);
+                        byte[] xmlBytes = Encoding.UTF8.GetBytes(factura.XmlGenerado);
+                        string respuestaRecepcionRaw = await _sriClient.EnviarRecepcionAsync(xmlBytes);
+                        var respuestaRecepcion = XmlHelper.Deserialize<RespuestaSolicitud>(respuestaRecepcionRaw);
 
-                        if (respuestaRecepcion.Contains("RECIBIDA"))
+                        if (respuestaRecepcion != null && respuestaRecepcion.Estado == "RECIBIDA")
                         {
                             factura.EstadoSRI = "RECIBIDA";
-                            // Guardamos el avance y continuamos inmediatamente a autorización
-                            _context.Facturas.Update(factura);
-                            await _context.SaveChangesAsync();
-                        }
-                        else if (respuestaRecepcion.Contains("CLAVE ACCESO REGISTRADA"))
-                        {
-                            // Regla de Negocio 2: Ya la tenían, pasamos a RECIBIDA para pedir autorización
-                            factura.EstadoSRI = "RECIBIDA";
+                            factura.MensajeErrorSRI = null;
                             _context.Facturas.Update(factura);
                             await _context.SaveChangesAsync();
                         }
                         else
                         {
-                            // Si falla con otro error (Devuelta), lo guardamos y saltamos a la siguiente
+                            // Error en Recepción
+                            var msgError = "Error en Recepción (reintento).";
+                            if (respuestaRecepcion?.Comprobantes != null)
+                            {
+                                var listaErrores = respuestaRecepcion.Comprobantes
+                                    .SelectMany(c => c.Mensajes)
+                                    .Select(m => $"{m.Identificador}: {m.Mensaje} - {m.InformacionAdicional}");
+                                msgError = string.Join(" | ", listaErrores);
+                            }
+
                             factura.EstadoSRI = "DEVUELTA";
-                            factura.MensajeErrorSRI = respuestaRecepcion;
+                            factura.MensajeErrorSRI = msgError;
+                            factura.Estado = "Devuelta";
+
                             _context.Facturas.Update(factura);
                             await _context.SaveChangesAsync();
-                            continue;
+                            continue; // Pasa a la siguiente factura
                         }
                     }
 
-                    // CASO B: Si ya está RECIBIDA (o acabamos de pasarla), pedimos Autorización
+                    // CASO B: Si ya está RECIBIDA, intentamos autorización
                     if (factura.EstadoSRI == "RECIBIDA")
                     {
-                        // Pequeña pausa de cortesía al SRI
+                        // Pausa para no saturar el SRI
                         await Task.Delay(1000);
 
-                        string respuestaAuth = await _sriClient.EnviarAutorizacionAsync(factura.ClaveAcceso);
+                        string respuestaAuthRaw = await _sriClient.EnviarAutorizacionAsync(factura.ClaveAcceso);
+                        var respuestaAuth = XmlHelper.Deserialize<RespuestaAutorizacion>(respuestaAuthRaw);
+                        var autorizacion = respuestaAuth?.Autorizaciones?.FirstOrDefault();
 
-                        if (respuestaAuth.Contains("AUTORIZADO"))
+                        if (autorizacion != null && autorizacion.Estado == "AUTORIZADO")
                         {
                             factura.EstadoSRI = "AUTORIZADO";
                             factura.Estado = "Autorizada";
-                            factura.FechaAutorizacion = DateTime.Now;
-                            factura.MensajeErrorSRI = null; // Limpiar errores previos
-
-                            // Opcional: Aquí podrías disparar el envío de correo nuevamente si tienes el servicio inyectado
+                            factura.FechaAutorizacion = DateTime.Now; // O mapear autorizacion.FechaAutorizacion
+                            factura.MensajeErrorSRI = null;
                         }
-                        else if (respuestaAuth.Contains("RECHAZADA"))
+                        else
                         {
-                            factura.EstadoSRI = "RECHAZADA";
-                            factura.Estado = "Rechazada";
-                            factura.MensajeErrorSRI = "Rechazada por el SRI en reintento.";
+                            // No Autorizado o Pendiente
+                            var msgError = "SRI No Autorizó en reintento.";
+                            if (autorizacion?.Mensajes != null)
+                            {
+                                var detalles = autorizacion.Mensajes
+                                    .Select(m => $"{m.Mensaje} ({m.InformacionAdicional})");
+                                msgError = string.Join("; ", detalles);
+                            }
+
+                            // Si NO está AUTORIZADO, actualizamos el estado y el mensaje.
+                            // Si el estado es temporal (ej. EN PROCESO), lo dejamos como RECIBIDA para reintentar después.
+                            if (autorizacion != null && autorizacion.Estado == "NO AUTORIZADO")
+                            {
+                                factura.EstadoSRI = "RECHAZADA";
+                                factura.Estado = "Rechazada";
+                            }
+                            // Si el estado es nulo o temporal, solo actualizamos el mensaje, manteniendo EstadoSRI = RECIBIDA
+                            factura.MensajeErrorSRI = msgError;
                         }
-                        // Si sigue "EN PROCESO", no hacemos nada, se intentará en el siguiente ciclo
                     }
 
-                    // Guardamos los cambios finales de esta factura
+                    // Guardar los cambios si hubo actualización en la autorización
                     _context.Facturas.Update(factura);
                     await _context.SaveChangesAsync();
                 }
                 catch (Exception ex)
                 {
-                    // Si falla el reintento (ej. sin internet), no rompemos el bucle, solo logueamos
+                    // Guardar un error genérico si falla la conexión o el código
+                    factura.MensajeErrorSRI = $"Error interno en reintento: {ex.Message}";
+                    _context.Facturas.Update(factura);
+                    await _context.SaveChangesAsync();
                     Console.WriteLine($"Error reintentando factura {factura.Id}: {ex.Message}");
                 }
             }
         }
 
-
-        // ... (otros métodos existentes) ...
-
+        // ============================================================
+        //  REINTENTAR UNA FACTURA ESPECÍFICA
+        // ============================================================
         public async Task ReintentarFacturaAsync(int id)
         {
-            // 1. Buscar la factura
             var factura = await _context.Facturas.FindAsync(id);
 
             if (factura == null)
@@ -351,89 +432,101 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             if (factura.EstadoSRI == "AUTORIZADO")
                 throw new Exception("Esta factura ya está autorizada.");
 
-            // Validar que tengamos lo mínimo necesario
             if (string.IsNullOrEmpty(factura.XmlGenerado))
                 throw new Exception("La factura no tiene XML generado. No se puede reenviar.");
 
             try
             {
-                // =========================================================================
-                // ETAPA 1: RECEPCIÓN (Si está Pendiente, Devuelta o nunca se envió)
-                // =========================================================================
+                // ETAPA 1: RECEPCIÓN (si no está RECIBIDA)
                 if (factura.EstadoSRI != "RECIBIDA")
                 {
-                    byte[] xmlBytes = System.Text.Encoding.UTF8.GetBytes(factura.XmlGenerado);
-                    string respuestaRecepcion = await _sriClient.EnviarRecepcionAsync(xmlBytes);
+                    byte[] xmlBytes = Encoding.UTF8.GetBytes(factura.XmlGenerado);
+                    string respuestaRecepcionRaw = await _sriClient.EnviarRecepcionAsync(xmlBytes);
+                    var respuestaRecepcion = XmlHelper.Deserialize<RespuestaSolicitud>(respuestaRecepcionRaw);
 
-                    if (respuestaRecepcion.Contains("RECIBIDA"))
+                    if (respuestaRecepcion != null && respuestaRecepcion.Estado == "RECIBIDA")
                     {
-                        factura.EstadoSRI = "RECIBIDA";
-                        factura.MensajeErrorSRI = null; // Limpiamos errores previos
-                    }
-                    else if (respuestaRecepcion.Contains("CLAVE ACCESO REGISTRADA"))
-                    {
-                        // Ya la tenían, avanzamos forzosamente a RECIBIDA para pedir autorización
                         factura.EstadoSRI = "RECIBIDA";
                         factura.MensajeErrorSRI = null;
                     }
                     else
                     {
-                        // Falló la recepción de nuevo
+                        // Manejo detallado de errores de recepción (DEVUELTA)
+                        var msgError = "Error de Recepción. Deserialización fallida o respuesta incompleta.";
+
+                        if (respuestaRecepcion != null && respuestaRecepcion.Comprobantes != null)
+                        {
+                            var listaErrores = respuestaRecepcion.Comprobantes
+                                .SelectMany(c => c.Mensajes)
+                                .Select(m => $"{m.Identificador}: {m.Mensaje} - {m.InformacionAdicional}");
+
+                            if (listaErrores.Any())
+                                msgError = string.Join(" | ", listaErrores);
+                        }
+
                         factura.EstadoSRI = "DEVUELTA";
                         factura.Estado = "Devuelta";
-                        factura.MensajeErrorSRI = respuestaRecepcion;
+                        factura.MensajeErrorSRI = msgError;
 
-                        // Guardamos y salimos, no tiene caso intentar autorizar
                         _context.Facturas.Update(factura);
                         await _context.SaveChangesAsync();
-                        throw new Exception($"Error en Recepción SRI: {respuestaRecepcion}");
+
+                        // 🌟 CORRECCIÓN CLAVE: Lanzar la excepción con el mensaje DETALLADO (msgError)
+                        throw new Exception($"Error en Recepción SRI: {msgError}");
                     }
 
-                    // Guardamos el avance intermedio
                     _context.Facturas.Update(factura);
                     await _context.SaveChangesAsync();
                 }
 
-                // =========================================================================
-                // ETAPA 2: AUTORIZACIÓN (Si ya está RECIBIDA, pedimos la respuesta)
-                // =========================================================================
+                // ETAPA 2: AUTORIZACIÓN (si está RECIBIDA)
                 if (factura.EstadoSRI == "RECIBIDA")
                 {
-                    // Pequeña espera para asegurar que el SRI procesó la recepción (si acabamos de enviar)
                     await Task.Delay(1000);
 
-                    string respuestaAuth = await _sriClient.EnviarAutorizacionAsync(factura.ClaveAcceso);
+                    string respuestaAuthRaw = await _sriClient.EnviarAutorizacionAsync(factura.ClaveAcceso);
+                    var respuestaAuth = XmlHelper.Deserialize<RespuestaAutorizacion>(respuestaAuthRaw);
+                    var autorizacion = respuestaAuth?.Autorizaciones?.FirstOrDefault();
 
-                    if (respuestaAuth.Contains("AUTORIZADO"))
+                    if (autorizacion != null && autorizacion.Estado == "AUTORIZADO")
                     {
                         factura.EstadoSRI = "AUTORIZADO";
                         factura.Estado = "Autorizada";
                         factura.FechaAutorizacion = DateTime.Now;
                         factura.MensajeErrorSRI = null;
                     }
-                    else if (respuestaAuth.Contains("RECHAZADA"))
-                    {
-                        factura.EstadoSRI = "RECHAZADA";
-                        factura.Estado = "Rechazada";
-                        // Aquí podrías parsear el XML de respuesta para sacar el motivo exacto, 
-                        // por ahora guardamos un mensaje genérico o el XML crudo si es corto.
-                        factura.MensajeErrorSRI = "El SRI rechazó el comprobante. Revise el portal o intente más tarde.";
-                    }
                     else
                     {
-                        // Sigue en procesamiento o error de conexión en autorización
-                        // No cambiamos el estado, se queda en RECIBIDA para intentar luego
-                        throw new Exception($"Respuesta SRI no definitiva: {respuestaAuth}");
+                        // Error en Autorización
+                        var msgError = "SRI No Autorizó el reintento.";
+                        if (autorizacion?.Mensajes != null)
+                        {
+                            var detalles = autorizacion.Mensajes
+                                .Select(m => $"{m.Mensaje} ({m.InformacionAdicional})");
+                            msgError = string.Join("; ", detalles);
+                        }
+
+                        if (autorizacion != null && autorizacion.Estado == "NO AUTORIZADO")
+                        {
+                            factura.EstadoSRI = "RECHAZADA";
+                            factura.Estado = "Rechazada";
+                        }
+
+                        factura.MensajeErrorSRI = msgError;
+
+                        _context.Facturas.Update(factura);
+                        await _context.SaveChangesAsync();
+
+                        // 🌟 CORRECCIÓN CLAVE: Lanzar la excepción con el mensaje DETALLADO (msgError)
+                        throw new Exception($"Error en Autorización SRI: {msgError}");
                     }
                 }
 
-                // Guardado Final
                 _context.Facturas.Update(factura);
                 await _context.SaveChangesAsync();
             }
-            catch (Exception)
+            catch
             {
-                // Relanzamos la excepción para que el controlador sepa que falló y le avise al usuario
                 throw;
             }
         }
