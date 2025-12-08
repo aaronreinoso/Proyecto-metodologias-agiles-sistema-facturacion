@@ -1,6 +1,7 @@
 using SistemaFacturacionSRI.BlazorApp.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using SistemaFacturacionSRI.BlazorApp.Auth;
+using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,34 +9,41 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// --- INICIO DE CONFIGURACIÓN DE HTTPCLIENT ---
-// Registra el HttpClient como un servicio
+// =============================
+// 1. LOCAL STORAGE
+// =============================
+builder.Services.AddBlazoredLocalStorage();
+
+// =============================
+// 2. HTTP CLIENT
+// =============================
 builder.Services.AddScoped(sp => new HttpClient
 {
-    // ¡IMPORTANTE! Usa la URL de tu API que anotaste en el Paso 1
-    BaseAddress = new Uri("https://localhost:7139")//;http://localhost:5183 ")
+    BaseAddress = new Uri("https://localhost:7139")
 });
-// --- FIN DE CONFIGURACIÓN DE HTTPCLIENT ---
 
-// --- SEGURIDAD ---
-builder.Services.AddAuthorizationCore(); // Habilita el sistema de permisos
-builder.Services.AddScoped<SimpleAuthStateProvider>(); // Tu servicio personalizado
-// Conecta tu servicio con el sistema estándar de Blazor
-builder.Services.AddScoped<AuthenticationStateProvider>(p => p.GetRequiredService<SimpleAuthStateProvider>());
+// =============================
+// 3. AUTORIZACIÓN Y AUTENTICACIÓN
+// =============================
+builder.Services.AddAuthorizationCore();
 
+// Tu proveedor de autenticación personalizado
+builder.Services.AddScoped<CustomAuthStateProvider>();
 
+// Registrar como servicio estándar de Blazor
+builder.Services.AddScoped<AuthenticationStateProvider>(p =>
+    p.GetRequiredService<CustomAuthStateProvider>());
+
+// =============================
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 app.UseAntiforgery();
 

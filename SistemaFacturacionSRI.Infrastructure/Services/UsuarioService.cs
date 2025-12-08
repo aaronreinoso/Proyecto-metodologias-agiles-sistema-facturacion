@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BCrypt.Net; // <<< NECESARIO PARA HASHING
+using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Usuarios;
 using SistemaFacturacionSRI.Domain.Entities;
@@ -25,16 +26,21 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             return await _context.Usuarios.FindAsync(id);
         }
 
+        // ============================================================
+        //  CREAR USUARIO (CON CONTRASEÑA ENCRIPTADA)
+        // ============================================================
         public async Task<Usuario> CreateUsuarioAsync(CreateUsuario dto)
         {
-            // Validar duplicados
             if (await _context.Usuarios.AnyAsync(u => u.NombreUsuario == dto.NombreUsuario))
                 throw new InvalidOperationException("El nombre de usuario ya existe.");
 
             var nuevo = new Usuario
             {
                 NombreUsuario = dto.NombreUsuario,
-                Password = dto.Password, // Recuerda: En producción usa Hashing
+
+                // CONTRASEÑA ENCRIPTADA
+                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+
                 Rol = dto.Rol,
                 Estado = true
             };
@@ -44,6 +50,9 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             return nuevo;
         }
 
+        // ============================================================
+        //  ACTUALIZAR USUARIO (HASH SI CAMBIA CONTRASEÑA)
+        // ============================================================
         public async Task<bool> UpdateUsuarioAsync(UpdateUsuario dto)
         {
             var user = await _context.Usuarios.FindAsync(dto.Id);
@@ -53,22 +62,25 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             user.Rol = dto.Rol;
             user.Estado = dto.Estado;
 
-            // Solo actualizamos contraseña si el usuario escribió una nueva
+            // SOLO si se envía una nueva contraseña
             if (!string.IsNullOrWhiteSpace(dto.Password))
             {
-                user.Password = dto.Password;
+                user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             }
 
             await _context.SaveChangesAsync();
             return true;
         }
 
+        // ============================================================
+        //  CAMBIAR ESTADO (ACTIVO / INACTIVO)
+        // ============================================================
         public async Task<bool> ToggleEstadoAsync(int id)
         {
             var user = await _context.Usuarios.FindAsync(id);
             if (user == null) return false;
 
-            user.Estado = !user.Estado; // Invertir estado (Activo <-> Inactivo)
+            user.Estado = !user.Estado;
             await _context.SaveChangesAsync();
             return true;
         }

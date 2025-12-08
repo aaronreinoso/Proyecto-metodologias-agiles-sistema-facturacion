@@ -3,15 +3,19 @@
 @using SistemaFacturacionSRI.Domain.Entities
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using Blazored.LocalStorage
+@using System.Net.Http.Headers
+
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavManager
+@inject ILocalStorageService LocalStorage
 
 <PageTitle>Mi Perfil</PageTitle>
 
 <style>
     /* ------------------------------------------- */
-    /* ESTILOS BASE Y ESTRUCTURA (Consistente) */
+    /* ESTILOS BASE Y ESTRUCTURA */
     /* ------------------------------------------- */
     .container {
         max-width: 600px;
@@ -109,7 +113,6 @@
         border-radius: 10px;
         font-weight: 600;
     }
-
 </style>
 
 <div class="container">
@@ -162,15 +165,38 @@
     private bool isLoading = true;
     private bool mensajeExito = false;
 
+   
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
+        // Debug: Verifica en la consola del navegador (F12) si entra aquí
+        Console.WriteLine($"Autenticado: {user.Identity?.IsAuthenticated}");
+
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
-            var idString = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            rolActual = user.FindFirst(ClaimTypes.Role)?.Value ?? "N/A";
+            // RECUPERAR EL TOKEN Y ADJUNTARLO
+            var token = await LocalStorage.GetItemAsStringAsync("authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token.Replace("\"", ""));
+            }
+
+            // INTENTO ROBUSTO DE OBTENER EL ID
+            // Buscamos por el tipo estándar O por "nameid" O por "sub"
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)
+                          ?? user.FindFirst("nameid")
+                          ?? user.FindFirst("sub");
+
+            var idString = idClaim?.Value;
+
+            // Para el Rol
+            var roleClaim = user.FindFirst(ClaimTypes.Role) ?? user.FindFirst("role");
+            rolActual = roleClaim?.Value ?? "N/A";
+
+            Console.WriteLine($"ID Encontrado en Token: {idString}"); // Debug
 
             if (int.TryParse(idString, out int userId))
             {
@@ -185,15 +211,19 @@
                             NombreUsuario = usuarioDb.NombreUsuario,
                             Rol = usuarioDb.Rol,
                             Estado = usuarioDb.Estado,
-                            Password = "" // Limpio por seguridad
+                            Password = ""
                         };
+                        Console.WriteLine("Perfil cargado con éxito.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error al cargar perfil: {ex.Message}");
-                    // Opcional: Mostrar un mensaje de error en la UI si la carga falla
+                    Console.WriteLine($"Error al cargar perfil desde API: {ex.Message}");
                 }
+            }
+            else
+            {
+                Console.WriteLine("No se pudo convertir el ID del usuario a número.");
             }
         }
         isLoading = false;
@@ -201,26 +231,30 @@
 
     private async Task ActualizarPerfil()
     {
-        // Limpiar mensaje de éxito al inicio de la operación
         mensajeExito = false;
 
         try
         {
+            // 2. RECUPERAR EL TOKEN (Para el PUT)
+            // Es vital volver a asignarlo aquí por si el HttpClient perdió la cabecera
+            var token = await LocalStorage.GetItemAsStringAsync("authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token.Replace("\"", ""));
+            }
+
             var response = await Http.PutAsJsonAsync($"api/usuarios/{miPerfil.Id}", miPerfil);
 
             if (response.IsSuccessStatusCode)
             {
                 mensajeExito = true;
-                // Importante: Limpiamos el campo de contraseña después de la actualización, ya que no queremos que quede cargado.
-                miPerfil.Password = "";
-                // En un sistema real, si el nombre de usuario o rol cambia, se requeriría re-autenticar al usuario.
+                miPerfil.Password = ""; // Limpiar campo contraseña
             }
             else
             {
-                // Manejar errores de la API si la actualización falla
                 var errorBody = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Error al actualizar: {errorBody}");
-                // Nota: Podrías añadir una variable para mostrar errores específicos de la API en la UI si lo deseas.
             }
         }
         catch (Exception ex)

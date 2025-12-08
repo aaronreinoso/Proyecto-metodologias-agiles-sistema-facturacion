@@ -3,8 +3,11 @@ using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain;
 using SistemaFacturacionSRI.Domain.DTOs.Clientes;
 using SistemaFacturacionSRI.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
+
 namespace SistemaFacturacionSRI.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ClientesController : ControllerBase

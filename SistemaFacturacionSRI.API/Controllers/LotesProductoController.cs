@@ -1,14 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.LotesProducto;
 using SistemaFacturacionSRI.Domain.Entities;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class LotesController : ControllerBase

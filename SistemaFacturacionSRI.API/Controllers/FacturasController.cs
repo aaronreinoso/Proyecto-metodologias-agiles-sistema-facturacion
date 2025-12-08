@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Facturas;
@@ -6,6 +7,7 @@ using SistemaFacturacionSRI.Infrastructure.Persistence;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class FacturasController : ControllerBase

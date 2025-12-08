@@ -123,9 +123,15 @@
 </div>
 
 @code {
-    private void Logout()
+    private async Task Logout()
     {
-        ((SimpleAuthStateProvider)AuthStateProvider).CerrarSesion();
+        // CAMBIO: Ahora hacemos cast a CustomAuthStateProvider
+        var authProvider = (CustomAuthStateProvider)AuthStateProvider;
+
+        // Ejecutamos el logout que borra el token
+        await authProvider.Logout();
+
+        // Redirigimos al login
         NavManager.NavigateTo("/login", forceLoad: true);
     }
 }

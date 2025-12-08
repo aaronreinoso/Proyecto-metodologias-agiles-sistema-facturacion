@@ -1,14 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.API.DTOs.Configuracion;
+using SistemaFacturacionSRI.Domain.DTOs.Configuracion;
 using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Helpers;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 using System.Security.Cryptography.X509Certificates;
-using SistemaFacturacionSRI.Domain.DTOs.Configuracion;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ConfiguracionController : ControllerBase

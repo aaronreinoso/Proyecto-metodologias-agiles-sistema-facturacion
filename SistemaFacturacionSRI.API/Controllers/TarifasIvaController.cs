@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SistemaFacturacionSRI.Infrastructure.Persistence;
 using SistemaFacturacionSRI.Domain.Entities;
+using SistemaFacturacionSRI.Infrastructure.Persistence;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class TarifasIvaController : ControllerBase

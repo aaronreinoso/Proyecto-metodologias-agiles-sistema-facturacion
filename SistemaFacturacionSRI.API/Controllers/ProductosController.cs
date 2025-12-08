@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Productos;
 using SistemaFacturacionSRI.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System;
 
 namespace SistemaFacturacionSRI.API.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ProductosController : ControllerBase
