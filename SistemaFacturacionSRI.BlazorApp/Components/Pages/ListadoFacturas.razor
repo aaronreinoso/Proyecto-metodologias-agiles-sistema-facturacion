@@ -58,7 +58,7 @@
                     <th>Total</th>
                     <th>Estado SRI</th>
                     <th>Mensaje / Error</th>
-                    <th class="text-center" style="min-width: 200px;">Acciones</th>
+                    <th class="text-center" style="min-width: 250px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -105,34 +105,30 @@
                                 }
                             </td>
                             <td class="text-center">
-                                <div class="btn-group" role="group">
+                                <div class="d-flex justify-content-center gap-1 flex-wrap">
                                     @if (f.EstadoSRI == "AUTORIZADO")
                                     {
-                                        <a href="crear-nc/@f.Id" class="btn btn-warning btn-sm" title="Crear Nota de Crédito">
-                                            <i class="bi bi-arrow-return-left"></i>
-                                        </a>
 
-                                        <a href="ver-nc/@f.Id" class="btn btn-info btn-sm text-white" title="Ver Notas de Crédito">
-                                            <i class="bi bi-list-check"></i>
-                                        </a>
 
                                         <button class="btn btn-sm btn-danger" @onclick="() => VerPdf(f.Id)" title="Ver RIDE (PDF)">
-                                            <i class="bi bi-file-pdf"></i>
+                                            <i class="bi bi-file-pdf"></i> PDF
                                         </button>
 
                                         <button class="btn btn-sm btn-primary" @onclick="() => ReenviarCorreo(f.Id)" title="Reenviar Email">
-                                            <i class="bi bi-envelope"></i>
+                                            <i class="bi bi-envelope"></i> Email
                                         </button>
                                     }
                                     else if (f.EstadoSRI != "RECHAZADA")
                                     {
                                         <button class="btn btn-sm btn-outline-warning text-dark" @onclick="() => ReintentarSri(f.Id)" title="Forzar envío al SRI">
-                                            <i class="bi bi-arrow-clockwise"></i> Reintentar
+                                            <i class="bi bi-arrow-clockwise"></i> Reintentar SRI
                                         </button>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger">Rechazada</span>
+                                        <span class="badge bg-danger p-2">
+                                            <i class="bi bi-x-circle"></i> Rechazada
+                                        </span>
                                     }
                                 </div>
                             </td>
