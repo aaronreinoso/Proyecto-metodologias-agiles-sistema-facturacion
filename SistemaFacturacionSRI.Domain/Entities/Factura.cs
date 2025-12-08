@@ -16,6 +16,9 @@ namespace SistemaFacturacionSRI.Domain.Entities
         [ForeignKey("ClienteId")]
         public virtual Cliente? Cliente { get; set; }
 
+        public virtual List<NotaCredito> NotasCredito { get; set; } = new();
+
+
         public DateTime FechaEmision { get; set; } = DateTime.Now;
 
         // Estados: "Pendiente", "Autorizada", "Rechazada"

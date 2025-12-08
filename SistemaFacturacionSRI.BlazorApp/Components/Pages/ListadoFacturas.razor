@@ -7,7 +7,7 @@
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>📑 Historial de Facturas</h2>
-        <a href="/facturacion" class="btn btn-primary">
+        <a href="facturacion" class="btn btn-primary">
             <i class="bi bi-plus-lg"></i> Nueva Factura
         </a>
     </div>
@@ -58,15 +58,20 @@
                     <th>Total</th>
                     <th>Estado SRI</th>
                     <th>Mensaje / Error</th>
-                    <th class="text-center">Acciones</th>
+                    <th class="text-center" style="min-width: 180px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                @if (FacturasFiltradas == null)
+                @if (isLoading)
                 {
-                    <tr><td colspan="7" class="text-center p-4">Cargando facturas...</td></tr>
+                    <tr>
+                        <td colspan="7" class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <span class="ms-2">Cargando facturas...</span>
+                        </td>
+                    </tr>
                 }
-                else if (!FacturasFiltradas.Any())
+                else if (FacturasFiltradas == null || !FacturasFiltradas.Any())
                 {
                     <tr><td colspan="7" class="text-center p-4">No se encontraron registros.</td></tr>
                 }
@@ -90,7 +95,7 @@
                             <td>
                                 @if (!string.IsNullOrEmpty(f.MensajeErrorSRI))
                                 {
-                                    <span class="text-danger small" title="@f.MensajeErrorSRI">
+                                    <span class="text-danger small" title="@f.MensajeErrorSRI" style="cursor:help">
                                         ⚠️ @Recortar(f.MensajeErrorSRI, 30)
                                     </span>
                                 }
@@ -100,25 +105,40 @@
                                 }
                             </td>
                             <td class="text-center">
-                                @if (f.EstadoSRI == "AUTORIZADO")
-                                {
-                                    <a href="@($"/api/facturas/{f.Id}/pdf")" target="_blank" class="btn btn-sm btn-danger me-1" title="Ver PDF">
-                                        <i class="bi bi-file-pdf"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-primary" @onclick="() => ReenviarCorreo(f.Id)" title="Reenviar Email">
-                                        <i class="bi bi-envelope"></i>
-                                    </button>
-                                }
-                                else if (f.EstadoSRI != "RECHAZADA")
-                                {
-                                    <button class="btn btn-sm btn-warning text-dark" @onclick="() => ReintentarSri(f.Id)" title="Forzar envío al SRI">
-                                        <i class="bi bi-arrow-clockwise"></i> Enviar SRI
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="text-danger small fw-bold">Rechazada</span>
-                                }
+                                <div class="btn-group" role="group">
+                                    @if (f.EstadoSRI == "AUTORIZADO")
+                                    {
+                                        @* BOTÓN CREAR NOTA DE CRÉDITO *@
+                                        <a href="crear-nc/@f.Id" class="btn btn-warning btn-sm" title="Crear Nota de Crédito">
+                                            <i class="bi bi-arrow-return-left"></i>
+                                        </a>
+
+                                        @* BOTÓN VER HISTORIAL NOTAS CRÉDITO *@
+                                        <a href="ver-nc/@f.Id" class="btn btn-info btn-sm text-white" title="Ver Notas de Crédito">
+                                            <i class="bi bi-list-check"></i>
+                                        </a>
+
+                                        @* BOTÓN VER PDF *@
+                                        <a href="@Navigation.ToAbsoluteUri($"api/facturas/{f.Id}/pdf")" target="_blank" class="btn btn-sm btn-danger" title="Ver PDF">
+                                            <i class="bi bi-file-pdf"></i>
+                                        </a>
+
+                                        @* BOTÓN REENVIAR EMAIL *@
+                                        <button class="btn btn-sm btn-primary" @onclick="() => ReenviarCorreo(f.Id)" title="Reenviar Email">
+                                            <i class="bi bi-envelope"></i>
+                                        </button>
+                                    }
+                                    else if (f.EstadoSRI != "RECHAZADA")
+                                    {
+                                        <button class="btn btn-sm btn-outline-warning text-dark" @onclick="() => ReintentarSri(f.Id)" title="Forzar envío al SRI">
+                                            <i class="bi bi-arrow-clockwise"></i> Reintentar
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Rechazada</span>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -131,6 +151,7 @@
 @code {
     private List<FacturaResumenDto> TodasLasFacturas = new();
     private List<FacturaResumenDto> FacturasFiltradas = null;
+    private bool isLoading = true;
 
     private string TerminoBusqueda { get; set; } = "";
     private DateTime? FechaInicio { get; set; }
@@ -142,37 +163,12 @@
         await CargarDatos();
     }
 
-    // ... dentro de @code ...
-
-    private async Task ReintentarSri(int id)
-    {
-        // 1. Feedback inmediato al usuario
-        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Deseas intentar enviar esta factura al SRI nuevamente?");
-        if (!confirmar) return;
-
-        // 2. Llamada al API
-        var response = await Http.PostAsync($"api/facturas/{id}/reintentar-sri", null);
-
-        if (response.IsSuccessStatusCode)
-        {
-            await JS.InvokeVoidAsync("alert", "✅ Se ha enviado la solicitud de reintento. Actualiza la tabla en unos segundos.");
-            // Opcional: Recargar la tabla automáticamente
-            await CargarDatos();
-        }
-        else
-        {
-            var msj = await response.Content.ReadAsStringAsync();
-            await JS.InvokeVoidAsync("alert", "❌ No se pudo procesar: " + msj);
-        }
-    }
-
-
     private async Task CargarDatos()
     {
+        isLoading = true;
         try
         {
             var resultado = await Http.GetFromJsonAsync<List<FacturaResumenDto>>("api/facturas");
-
             if (resultado != null)
             {
                 TodasLasFacturas = resultado;
@@ -183,6 +179,59 @@
         {
             Console.WriteLine($"Error al cargar facturas: {ex.Message}");
             FacturasFiltradas = new List<FacturaResumenDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ReintentarSri(int id)
+    {
+        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Deseas intentar enviar esta factura al SRI nuevamente?");
+        if (!confirmar) return;
+
+        try
+        {
+            var response = await Http.PostAsync($"api/facturas/{id}/reintentar-sri", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "✅ Solicitud enviada. Actualizando...");
+                await CargarDatos();
+            }
+            else
+            {
+                var msj = await response.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("alert", "❌ Error: " + msj);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "❌ Error de conexión: " + ex.Message);
+        }
+    }
+
+    private async Task ReenviarCorreo(int id)
+    {
+        var confirm = await JS.InvokeAsync<bool>("confirm", "¿Deseas reenviar la factura al correo del cliente?");
+        if (!confirm) return;
+
+        try
+        {
+            var response = await Http.PostAsync($"api/facturas/{id}/reenviar-email", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "✅ Correo enviado correctamente.");
+            }
+            else
+            {
+                var msj = await response.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("alert", "❌ Error: " + msj);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "❌ Error de conexión: " + ex.Message);
         }
     }
 
@@ -234,27 +283,5 @@
     {
         if (string.IsNullOrEmpty(texto)) return "";
         return texto.Length > largo ? texto.Substring(0, largo) + "..." : texto;
-    }
-
-    // ===============================================================
-    // NUEVA FUNCIÓN: REENVIAR FACTURA AL CORREO DEL CLIENTE
-    // ===============================================================
-    private async Task ReenviarCorreo(int id)
-    {
-        var confirm = await JS.InvokeAsync<bool>("confirm",
-            "¿Deseas reenviar la factura al correo del cliente?");
-        if (!confirm) return;
-
-        var response = await Http.PostAsync($"api/facturas/{id}/reenviar-email", null);
-
-        if (response.IsSuccessStatusCode)
-        {
-            await JS.InvokeVoidAsync("alert", "✅ Correo enviado correctamente.");
-        }
-        else
-        {
-            var msj = await response.Content.ReadAsStringAsync();
-            await JS.InvokeVoidAsync("alert", "❌ Error: " + msj);
-        }
     }
 }

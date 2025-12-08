@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Domain.DTOs.Facturas;
+using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 
 namespace SistemaFacturacionSRI.API.Controllers
@@ -13,20 +14,15 @@ namespace SistemaFacturacionSRI.API.Controllers
     public class FacturasController : ControllerBase
     {
         private readonly IFacturaService _facturaService;
-
-        // =========================================================
-        //  INYECCIONES NECESARIAS
-        // =========================================================
-        private readonly AppDbContext _context;     // Para consulta directa
-        private readonly IPdfService _pdfService;   // Para generar PDF
-        private readonly IEmailService _emailService; // Para reenviar email
+        private readonly AppDbContext _context;
+        private readonly IPdfService _pdfService;
+        private readonly IEmailService _emailService;
 
         public FacturasController(
             IFacturaService facturaService,
-            AppDbContext context,          // <<< requerido para PDF
-            IPdfService pdfService,        // <<< requerido para PDF
-            IEmailService emailService     // <<< para reenviar email
-        )
+            AppDbContext context,
+            IPdfService pdfService,
+            IEmailService emailService)
         {
             _facturaService = facturaService;
             _context = context;
@@ -35,7 +31,31 @@ namespace SistemaFacturacionSRI.API.Controllers
         }
 
         // =========================================================
-        //  CREAR FACTURA
+        //  1. OBTENER UNA FACTURA POR ID (FALTABA ESTE)
+        // =========================================================
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Factura>> GetFactura(int id)
+        {
+            var factura = await _context.Facturas
+                .Include(f => f.Cliente)
+                .Include(f => f.Detalles)
+                    .ThenInclude(d => d.Producto) // Importante para ver los items en la NC
+                    .ThenInclude(p => p.TarifaIva)
+                .Include(f => f.NotasCredito)     // Importante para validar saldos
+                .FirstOrDefaultAsync(f => f.Id == id)
+                
+                ;
+
+            if (factura == null)
+            {
+                return NotFound("Factura no encontrada.");
+            }
+
+            return Ok(factura);
+        }
+
+        // =========================================================
+        //  2. CREAR FACTURA
         // =========================================================
         [HttpPost]
         public async Task<IActionResult> CrearFactura([FromBody] CreateFacturaDto dto)
@@ -52,7 +72,7 @@ namespace SistemaFacturacionSRI.API.Controllers
         }
 
         // =========================================================
-        //  HISTORIAL DE FACTURAS
+        //  3. HISTORIAL DE FACTURAS
         // =========================================================
         [HttpGet]
         public async Task<IActionResult> GetHistorial()
@@ -69,35 +89,44 @@ namespace SistemaFacturacionSRI.API.Controllers
         }
 
         // =========================================================
-        //   DESCARGAR PDF  (CAMBIO FINAL: constraint :int + anti-cache)
+        //  4. REINTENTAR ENVÍO AL SRI (FALTABA ESTE)
+        // =========================================================
+        [HttpPost("{id}/reintentar-sri")]
+        public async Task<IActionResult> ReintentarSri(int id)
+        {
+            try
+            {
+                await _facturaService.ReintentarFacturaAsync(id);
+                return Ok(new { message = "Proceso de reintento finalizado." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message); // Mensaje simple para que Blazor lo muestre en el alert
+            }
+        }
+
+        // =========================================================
+        //  5. DESCARGAR PDF
         // =========================================================
         [HttpGet("{id:int}/pdf")]
         public async Task<IActionResult> DescargarPdf(int id)
         {
-            // 1. Cargar factura completa
             var factura = await _context.Facturas
                 .Include(f => f.Cliente)
                 .Include(f => f.Detalles).ThenInclude(d => d.Producto)
                 .FirstOrDefaultAsync(f => f.Id == id);
 
-            if (factura == null)
-                return NotFound("Factura no encontrada.");
+            if (factura == null) return NotFound("Factura no encontrada.");
 
-            // 2. Configuración de empresa para encabezado del PDF
             var config = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
-
-            // 3. Generar PDF
             var pdfBytes = _pdfService.GenerarFacturaPdf(factura, config);
 
-            // 4. Evitar problemas de caché en navegadores
             Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
-
-            // 5. Retornar PDF descargable
             return File(pdfBytes, "application/pdf", $"Factura-{id}.pdf");
         }
 
         // =========================================================
-        //  REENVIAR FACTURA POR EMAIL
+        //  6. REENVIAR EMAIL
         // =========================================================
         [HttpPost("{id}/reenviar-email")]
         public async Task<IActionResult> ReenviarEmail(int id)
@@ -109,16 +138,11 @@ namespace SistemaFacturacionSRI.API.Controllers
                     .Include(f => f.Detalles).ThenInclude(d => d.Producto)
                     .FirstOrDefaultAsync(f => f.Id == id);
 
-                if (factura == null)
-                    return NotFound("Factura no encontrada.");
-
-                if (string.IsNullOrEmpty(factura.Cliente?.Email))
-                    return BadRequest("El cliente no tiene correo registrado.");
+                if (factura == null) return NotFound("Factura no encontrada.");
+                if (string.IsNullOrEmpty(factura.Cliente?.Email)) return BadRequest("El cliente no tiene correo.");
 
                 var config = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
-
                 var pdfBytes = _pdfService.GenerarFacturaPdf(factura, config);
-
                 string numFac = $"{config.CodigoEstablecimiento}-{config.CodigoPuntoEmision}-{factura.Id:D9}";
 
                 await _emailService.EnviarFacturaAsync(
@@ -135,25 +159,5 @@ namespace SistemaFacturacionSRI.API.Controllers
                 return BadRequest(new { message = "Error enviando correo: " + ex.Message });
             }
         }
-
-
-
-        [HttpPost("{id}/reintentar-sri")]
-        public async Task<IActionResult> ReintentarSri(int id)
-        {
-            try
-            {
-                // Una sola línea que hace toda la magia
-                await _facturaService.ReintentarFacturaAsync(id);
-
-                return Ok(new { message = "Reintento procesado correctamente." });
-            }
-            catch (Exception ex)
-            {
-                // El servicio lanzará excepción si falla la recepción o validación
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
     }
 }

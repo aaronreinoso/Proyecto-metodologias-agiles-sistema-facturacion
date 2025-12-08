@@ -136,6 +136,104 @@ namespace SistemaFacturacionSRI.Infrastructure.Services.Pdf
             });
         }
 
+        public byte[] GenerarNotaCreditoPdf(NotaCredito nc, ConfiguracionSRI config)
+        {
+            var documento = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10));
+
+                    page.Header().Row(row =>
+                    {
+                        // EMISOR
+                        row.RelativeItem(5).Column(col =>
+                        {
+                            col.Item().Text(config.RazonSocial).FontSize(14).Bold();
+                            col.Item().Text($"RUC: {config.Ruc}");
+                            col.Item().Text($"Dir: {config.DireccionMatriz}");
+                        });
+
+                        // INFO NC
+                        row.RelativeItem(4).Border(1).Padding(5).Column(col =>
+                        {
+                            col.Item().Text("R.U.C.: " + config.Ruc).Bold();
+                            col.Item().Text("NOTA DE CRÉDITO").FontSize(14).Bold().FontColor(Colors.Red.Medium);
+                            col.Item().Text($"No. {config.CodigoEstablecimiento}-{config.CodigoPuntoEmision}-{nc.Id:D9}");
+                            col.Item().Text($"FECHA: {nc.FechaEmision:dd/MM/yyyy HH:mm}");
+
+                            col.Item().Text("DOC MODIFICADO: FACTURA").FontSize(8);
+                            col.Item().Text($"NUM: {config.CodigoEstablecimiento}-{config.CodigoPuntoEmision}-{nc.FacturaId:D9}").FontSize(8);
+                            col.Item().Text($"MOTIVO: {nc.Motivo}").FontSize(8);
+
+                            if (!string.IsNullOrEmpty(nc.ClaveAcceso))
+                            {
+                                col.Item().Text("CLAVE ACCESO:").FontSize(7);
+                                col.Item().Text(nc.ClaveAcceso).FontSize(7);
+                                // QR
+                                col.Item().AlignRight().Width(60).Image(GenerarCodigoQR(nc.ClaveAcceso));
+                            }
+                        });
+                    });
+
+                    page.Content().PaddingVertical(10).Column(col =>
+                    {
+                        // CLIENTE
+                        col.Item().Border(1).Padding(5).Column(c =>
+                        {
+                            c.Item().Text($"Cliente: {nc.Factura?.Cliente?.NombreCompleto}");
+                            c.Item().Text($"Identificación: {nc.Factura?.Cliente?.Identificacion}");
+                        });
+
+                        col.Item().PaddingVertical(5);
+
+                        // TABLA
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.ConstantColumn(40);
+                                columns.RelativeColumn();
+                                columns.ConstantColumn(60);
+                                columns.ConstantColumn(60);
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).Text("Cant");
+                                header.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).Text("Producto");
+                                header.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).Text("P.Unit");
+                                header.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).Text("Total");
+                            });
+
+                            foreach (var item in nc.Detalles)
+                            {
+                                table.Cell().BorderBottom(1).Padding(2).Text(item.Cantidad.ToString());
+                                table.Cell().BorderBottom(1).Padding(2).Text(item.Producto?.Descripcion ?? "Item");
+                                table.Cell().BorderBottom(1).Padding(2).AlignRight().Text($"${item.PrecioUnitario:F2}");
+                                table.Cell().BorderBottom(1).Padding(2).AlignRight().Text($"${item.Subtotal:F2}");
+                            }
+                        });
+
+                        // TOTALES
+                        col.Item().AlignRight().PaddingTop(10).Column(c =>
+                        {
+                            c.Item().Text($"Subtotal: ${nc.Subtotal:F2}");
+                            c.Item().Text($"IVA: ${nc.TotalIVA:F2}");
+                            c.Item().Text($"TOTAL: ${nc.Total:F2}").Bold().FontSize(14);
+                        });
+                    });
+
+                    page.Footer().AlignCenter().Text(x => x.CurrentPageNumber());
+                });
+            }).GeneratePdf();
+
+            return documento;
+        }
+
         static IContainer EstiloCelda(IContainer container)
         {
             return container.Border(1).BorderColor(Colors.Grey.Lighten1).Background(Colors.Grey.Lighten3).Padding(5);

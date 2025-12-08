@@ -6,6 +6,7 @@ using SistemaFacturacionSRI.Domain.Entities;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 using SistemaFacturacionSRI.Infrastructure.SRI.Services;
 using SistemaFacturacionSRI.Infrastructure.Helpers;
+using System.Xml.Linq;
 using SistemaFacturacionSRI.Infrastructure.SRI.Models;
 
 namespace SistemaFacturacionSRI.Infrastructure.Services
@@ -33,6 +34,34 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
             _pdfService = pdfService;
             _emailService = emailService;
         }
+
+
+
+        // ============================================================
+        //  MÉTODO AUXILIAR PARA LIMPIAR EL SOAP (NUEVO)
+        // ============================================================
+        private string ExtraerXmlDelSoap(string soapResponse, string nombreNodoRaiz)
+        {
+            if (string.IsNullOrEmpty(soapResponse)) return soapResponse;
+            try
+            {
+                // Busca el nodo específico dentro de toda la respuesta SOAP
+                var doc = XDocument.Parse(soapResponse);
+                var nodo = doc.Descendants()
+                              .Where(x => x.Name.LocalName == nombreNodoRaiz)
+                              .FirstOrDefault();
+
+                return nodo?.ToString() ?? soapResponse;
+            }
+            catch
+            {
+                // Si falla el parseo (no es XML), devolvemos el original para que falle luego controladamente
+                return soapResponse;
+            }
+        }
+
+
+
 
         // ============================================================
         //  CREAR FACTURA + INTEGRACIÓN COMPLETA CON SRI
@@ -160,119 +189,107 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
                 nuevaFactura.XmlGenerado = Encoding.UTF8.GetString(xmlBytes);
 
-                // =====================================================================
-                // FASE A: ENVÍO A RECEPCIÓN (Validación de estructura y datos)
-                // =====================================================================
-                string respuestaRecepcionRaw = await _sriClient.EnviarRecepcionAsync(xmlBytes);
-                var respuestaRecepcion = XmlHelper.Deserialize<RespuestaSolicitud>(respuestaRecepcionRaw);
+                // FASE A: RECEPCIÓN
+            string respuestaRecepcionRaw = await _sriClient.EnviarRecepcionAsync(xmlBytes);
 
-                if (respuestaRecepcion != null && respuestaRecepcion.Estado == "RECIBIDA")
+                if (respuestaRecepcionRaw.StartsWith("ERROR_CONEXION:"))
+                    throw new Exception(respuestaRecepcionRaw);
+
+                // ---> LIMPIEZA DEL XML AQUÍ <---
+                string xmlLimpioRecepcion = ExtraerXmlDelSoap(respuestaRecepcionRaw, "RespuestaRecepcionComprobante");
+                var respuestaRecepcion = XmlHelper.Deserialize<RespuestaSolicitud>(xmlLimpioRecepcion);
+
+                if (respuestaRecepcion == null)
                 {
-                    // RECEPCIÓN CORRECTA
+                    string rawSnippet = respuestaRecepcionRaw.Substring(0, Math.Min(respuestaRecepcionRaw.Length, 300));
+                    string error = $"Error CRÍTICO SRI (Recepción). Respuesta no legible: {rawSnippet}...";
+                    nuevaFactura.EstadoSRI = "DEVUELTA";
+                    nuevaFactura.MensajeErrorSRI = error;
+                    _context.Facturas.Update(nuevaFactura);
+                    await _context.SaveChangesAsync();
+                    throw new Exception(error);
+                }
+
+                if (respuestaRecepcion.Estado == "RECIBIDA")
+                {
                     nuevaFactura.EstadoSRI = "RECIBIDA";
+                    await Task.Delay(1500); // Espera
 
-                    // Pausa breve para procesamiento interno del SRI
-                    await Task.Delay(1500);
-
-                    // =================================================================
-                    // FASE B: SOLICITUD DE AUTORIZACIÓN
-                    // =================================================================
+                    // FASE B: AUTORIZACIÓN
                     string respuestaAuthRaw = await _sriClient.EnviarAutorizacionAsync(nuevaFactura.ClaveAcceso);
-                    var respuestaAuth = XmlHelper.Deserialize<RespuestaAutorizacion>(respuestaAuthRaw);
 
+                    if (respuestaAuthRaw.StartsWith("ERROR_CONEXION:"))
+                        throw new Exception(respuestaAuthRaw);
+
+                    // ---> LIMPIEZA DEL XML AQUÍ <---
+                    string xmlLimpioAuth = ExtraerXmlDelSoap(respuestaAuthRaw, "RespuestaAutorizacionComprobante");
+                    var respuestaAuth = XmlHelper.Deserialize<RespuestaAutorizacion>(xmlLimpioAuth);
+
+                    if (respuestaAuth == null)
+                    {
+                        string rawSnippet = respuestaAuthRaw.Substring(0, Math.Min(respuestaAuthRaw.Length, 300));
+                        string error = $"Error CRÍTICO SRI (Autorización). Respuesta no legible: {rawSnippet}...";
+                        nuevaFactura.MensajeErrorSRI = error;
+                        _context.Facturas.Update(nuevaFactura);
+                        await _context.SaveChangesAsync();
+                        throw new Exception(error);
+                    }
+
+                    // ... (Resto de lógica de Autorización igual: verificar "AUTORIZADO", enviar email, etc.) ...
                     var autorizacion = respuestaAuth?.Autorizaciones?.FirstOrDefault();
-
                     if (autorizacion != null && autorizacion.Estado == "AUTORIZADO")
                     {
                         nuevaFactura.EstadoSRI = "AUTORIZADO";
                         nuevaFactura.Estado = "Autorizada";
-
-                        // Si tu modelo tiene fecha de autorización, puedes mapearla.
-                        // Por simplicidad, usamos ahora:
                         nuevaFactura.FechaAutorizacion = DateTime.Now;
 
-                        // -------------------------------------------------------------
-                        //  PDF + ENVÍO DE CORREO (SE MANTIENE TU LÓGICA)
-                        // -------------------------------------------------------------
+                        // Lógica PDF y Email...
                         try
                         {
                             var pdfBytes = _pdfService.GenerarFacturaPdf(nuevaFactura, configEmpresa);
-
                             if (!string.IsNullOrEmpty(cliente.Email))
                             {
                                 string numFac = $"{configEmpresa.CodigoEstablecimiento}-{configEmpresa.CodigoPuntoEmision}-{nuevaFactura.Id:D9}";
-
-                                await _emailService.EnviarFacturaAsync(
-                                    cliente.Email,
-                                    nuevaFactura.XmlGenerado,
-                                    pdfBytes,
-                                    numFac
-                                );
+                                await _emailService.EnviarFacturaAsync(cliente.Email, nuevaFactura.XmlGenerado, pdfBytes, numFac);
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine("Error enviando factura por correo: " + ex.Message);
-                        }
+                        catch { }
                     }
                     else
                     {
-                        // CASO: NO AUTORIZADO (Reglas de negocio, deudas SRI, etc.)
                         nuevaFactura.EstadoSRI = "RECHAZADA";
                         nuevaFactura.Estado = "Rechazada";
-
                         var msgError = "SRI No Autorizó.";
                         if (autorizacion?.Mensajes != null)
                         {
-                            var detalles = autorizacion.Mensajes
-                                .Select(m => $"{m.Mensaje} ({m.InformacionAdicional})");
+                            var detalles = autorizacion.Mensajes.Select(m => $"{m.Mensaje} ({m.InformacionAdicional})");
                             msgError = string.Join("; ", detalles);
                         }
-
                         nuevaFactura.MensajeErrorSRI = msgError;
                     }
                 }
                 else
                 {
-                    // CASO: DEVUELTA EN RECEPCIÓN (XML mal formado, firma inválida, clave duplicada, etc.)
+                    // Lógica DEVUELTA (Igual que antes)
                     nuevaFactura.EstadoSRI = "DEVUELTA";
                     nuevaFactura.Estado = "Devuelta";
-
-                    string msgError = "Error en Recepción.";
-
+                    string msgError = "Comprobante devuelto.";
                     if (respuestaRecepcion?.Comprobantes != null)
                     {
-                        var listaErrores = new List<string>();
-
-                        foreach (var comp in respuestaRecepcion.Comprobantes)
-                        {
-                            if (comp.Mensajes != null)
-                            {
-                                foreach (var m in comp.Mensajes)
-                                {
-                                    listaErrores.Add($"{m.Identificador}: {m.Mensaje} - {m.InformacionAdicional}");
-                                }
-                            }
-                        }
-
-                        if (listaErrores.Any())
-                            msgError = string.Join(" | ", listaErrores);
+                        var listaErrores = respuestaRecepcion.Comprobantes
+                            .SelectMany(c => c.Mensajes)
+                            .Select(m => $"{m.Identificador}: {m.Mensaje} - {m.InformacionAdicional}");
+                        if (listaErrores.Any()) msgError = string.Join(" | ", listaErrores);
                     }
-                    else
-                    {
-                        msgError = "Error de conexión o formato SRI desconocido.";
-                    }
-
                     nuevaFactura.MensajeErrorSRI = msgError;
                 }
 
                 _context.Facturas.Update(nuevaFactura);
                 await _context.SaveChangesAsync();
-
                 await transaction.CommitAsync();
                 return nuevaFactura;
             }
-            catch
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 throw;
@@ -420,7 +437,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
         }
 
         // ============================================================
-        //  REINTENTAR UNA FACTURA ESPECÍFICA
+        //  REINTENTAR UNA FACTURA ESPECÍFICA (Con limpieza SOAP)
         // ============================================================
         public async Task ReintentarFacturaAsync(int id)
         {
@@ -437,14 +454,41 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
 
             try
             {
+                // -------------------------------------------------------------
                 // ETAPA 1: RECEPCIÓN (si no está RECIBIDA)
+                // -------------------------------------------------------------
                 if (factura.EstadoSRI != "RECIBIDA")
                 {
                     byte[] xmlBytes = Encoding.UTF8.GetBytes(factura.XmlGenerado);
                     string respuestaRecepcionRaw = await _sriClient.EnviarRecepcionAsync(xmlBytes);
-                    var respuestaRecepcion = XmlHelper.Deserialize<RespuestaSolicitud>(respuestaRecepcionRaw);
 
-                    if (respuestaRecepcion != null && respuestaRecepcion.Estado == "RECIBIDA")
+                    // 1. Verificar error de conexión inmediato
+                    if (respuestaRecepcionRaw.StartsWith("ERROR_CONEXION:"))
+                    {
+                        throw new Exception(respuestaRecepcionRaw);
+                    }
+
+                    // 2. Limpiar SOAP y Deserializar
+                    string xmlLimpioRecepcion = ExtraerXmlDelSoap(respuestaRecepcionRaw, "RespuestaRecepcionComprobante");
+                    var respuestaRecepcion = XmlHelper.Deserialize<RespuestaSolicitud>(xmlLimpioRecepcion);
+
+                    // 3. Verificar si el XML es válido
+                    if (respuestaRecepcion == null)
+                    {
+                        string rawSnippet = respuestaRecepcionRaw.Substring(0, Math.Min(respuestaRecepcionRaw.Length, 300));
+                        string error = $"Error CRÍTICO SRI (Recepción). Respuesta no legible: {rawSnippet}...";
+
+                        factura.EstadoSRI = "DEVUELTA";
+                        factura.Estado = "Devuelta";
+                        factura.MensajeErrorSRI = error;
+
+                        _context.Facturas.Update(factura);
+                        await _context.SaveChangesAsync();
+                        throw new Exception(error);
+                    }
+
+                    // 4. Evaluar respuesta del SRI
+                    if (respuestaRecepcion.Estado == "RECIBIDA")
                     {
                         factura.EstadoSRI = "RECIBIDA";
                         factura.MensajeErrorSRI = null;
@@ -452,9 +496,8 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     else
                     {
                         // Manejo detallado de errores de recepción (DEVUELTA)
-                        var msgError = "Error de Recepción. Deserialización fallida o respuesta incompleta.";
-
-                        if (respuestaRecepcion != null && respuestaRecepcion.Comprobantes != null)
+                        var msgError = "Comprobante devuelto.";
+                        if (respuestaRecepcion.Comprobantes != null)
                         {
                             var listaErrores = respuestaRecepcion.Comprobantes
                                 .SelectMany(c => c.Mensajes)
@@ -471,7 +514,6 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         _context.Facturas.Update(factura);
                         await _context.SaveChangesAsync();
 
-                        // 🌟 CORRECCIÓN CLAVE: Lanzar la excepción con el mensaje DETALLADO (msgError)
                         throw new Exception($"Error en Recepción SRI: {msgError}");
                     }
 
@@ -479,14 +521,39 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     await _context.SaveChangesAsync();
                 }
 
+                // -------------------------------------------------------------
                 // ETAPA 2: AUTORIZACIÓN (si está RECIBIDA)
+                // -------------------------------------------------------------
                 if (factura.EstadoSRI == "RECIBIDA")
                 {
                     await Task.Delay(1000);
 
                     string respuestaAuthRaw = await _sriClient.EnviarAutorizacionAsync(factura.ClaveAcceso);
-                    var respuestaAuth = XmlHelper.Deserialize<RespuestaAutorizacion>(respuestaAuthRaw);
-                    var autorizacion = respuestaAuth?.Autorizaciones?.FirstOrDefault();
+
+                    // 1. Verificar error de conexión
+                    if (respuestaAuthRaw.StartsWith("ERROR_CONEXION:"))
+                    {
+                        throw new Exception(respuestaAuthRaw);
+                    }
+
+                    // 2. Limpiar SOAP y Deserializar
+                    string xmlLimpioAuth = ExtraerXmlDelSoap(respuestaAuthRaw, "RespuestaAutorizacionComprobante");
+                    var respuestaAuth = XmlHelper.Deserialize<RespuestaAutorizacion>(xmlLimpioAuth);
+
+                    // 3. Verificar si el XML es válido
+                    if (respuestaAuth == null)
+                    {
+                        string rawSnippet = respuestaAuthRaw.Substring(0, Math.Min(respuestaAuthRaw.Length, 300));
+                        string error = $"Error CRÍTICO SRI (Autorización). Respuesta no legible: {rawSnippet}...";
+
+                        factura.MensajeErrorSRI = error;
+                        _context.Facturas.Update(factura);
+                        await _context.SaveChangesAsync();
+                        throw new Exception(error);
+                    }
+
+                    // 4. Evaluar Autorización
+                    var autorizacion = respuestaAuth.Autorizaciones?.FirstOrDefault();
 
                     if (autorizacion != null && autorizacion.Estado == "AUTORIZADO")
                     {
@@ -497,7 +564,6 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                     }
                     else
                     {
-                        // Error en Autorización
                         var msgError = "SRI No Autorizó el reintento.";
                         if (autorizacion?.Mensajes != null)
                         {
@@ -517,11 +583,11 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                         _context.Facturas.Update(factura);
                         await _context.SaveChangesAsync();
 
-                        // 🌟 CORRECCIÓN CLAVE: Lanzar la excepción con el mensaje DETALLADO (msgError)
                         throw new Exception($"Error en Autorización SRI: {msgError}");
                     }
                 }
 
+                // Guardar estado final (Éxito)
                 _context.Facturas.Update(factura);
                 await _context.SaveChangesAsync();
             }
@@ -530,6 +596,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 throw;
             }
         }
-
     }
-}
+
+ }
+

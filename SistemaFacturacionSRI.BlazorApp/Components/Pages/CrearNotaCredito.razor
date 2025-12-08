@@ -1,0 +1,272 @@
+﻿@page "/crear-nc/{FacturaId:int}"
+@using SistemaFacturacionSRI.Domain.DTOs.NotasCredito
+@using SistemaFacturacionSRI.Domain.Entities
+@using SistemaFacturacionSRI.Domain.DTOs.Facturas
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+
+<PageTitle>Emitir Nota de Crédito</PageTitle>
+
+<div class="container-fluid">
+    <h3>🔙 Emitir Nota de Crédito</h3>
+
+    @if (isLoading)
+    {
+        <div class="alert alert-info">Cargando datos de la factura...</div>
+    }
+    else if (factura == null)
+    {
+        <div class="alert alert-danger">Factura no encontrada.</div>
+    }
+    else
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <strong>Datos de la Factura Sustento</strong>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="fw-bold">Cliente:</label> @factura.Cliente?.NombreCompleto
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold">RUC/Cédula:</label> @factura.Cliente?.Identificacion
+                    </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold">Fecha Emisión:</label> @factura.FechaEmision.ToShortDateString()
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <label class="fw-bold">Total Factura:</label> $@factura.Total.ToString("N2")
+                    </div>
+                    <div class="col-md-4 text-danger">
+                        <label class="fw-bold">Saldo Disponible:</label> $@saldoDisponible.ToString("N2")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <EditForm Model="notaCredito" OnValidSubmit="GuardarNotaCredito">
+            <DataAnnotationsValidator />
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Motivo de la Modificación:</label>
+                <InputText @bind-Value="notaCredito.Motivo" class="form-control" placeholder="Ej: Devolución de mercadería, Error en facturación..." required />
+            </div>
+
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio Unit.</th>
+                        <th>IVA %</th>
+                        <th>Cant. Facturada</th>
+                        <th style="width: 150px;">Cant. a Devolver</th>
+                        <th>Subtotal</th>
+                        <th>Total Línea (con IVA)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in listaItemsUI)
+                    {
+                        <tr>
+                            <td>@item.NombreProducto</td>
+                            <td class="text-end">$@item.PrecioUnitario.ToString("N2")</td>
+                            <td class="text-center">@item.PorcentajeIva.ToString("0")%</td>
+                            <td class="text-center">@item.CantidadOriginal</td>
+                            <td>
+                                <input type="number" class="form-control"
+                                       @bind="item.CantidadADevolver"
+                                       @bind:event="oninput"
+                                       @onchange="CalcularTotales"
+                                       min="0" max="@item.CantidadOriginal" />
+                            </td>
+                            <td class="text-end">
+                                $@((item.CantidadADevolver * item.PrecioUnitario).ToString("N2"))
+                            </td>
+                            <td class="text-end fw-bold">
+                                @{
+                                    var subtotalLinea = item.CantidadADevolver * item.PrecioUnitario;
+                                    var ivaLinea = subtotalLinea * (item.PorcentajeIva / 100m);
+                                    var totalLinea = subtotalLinea + ivaLinea;
+                                }
+                                $@totalLinea.ToString("N2")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6" class="text-end fw-bold">Total Nota Crédito:</td>
+                        <td class="text-end fw-bold text-success" style="font-size: 1.2em;">
+                            $@totalCalculado.ToString("N2")
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-danger">@mensajeError</div>
+            }
+
+            <div class="d-flex justify-content-end gap-2">
+                <a href="facturas" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-warning" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm"></span>
+                    }
+                    Generar Nota de Crédito
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public int FacturaId { get; set; }
+
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private Factura? factura;
+    private CreateNotaCreditoDto notaCredito = new();
+    private List<ItemNotaCreditoUI> listaItemsUI = new();
+    private string mensajeError = "";
+    private decimal saldoDisponible = 0;
+    private decimal totalCalculado = 0;
+
+    // Modelo auxiliar para la interfaz
+    class ItemNotaCreditoUI
+    {
+        public int ProductoId { get; set; }
+        public string NombreProducto { get; set; }
+        public decimal PrecioUnitario { get; set; }
+        public decimal PorcentajeIva { get; set; } // <--- NUEVO CAMPO
+        public int CantidadOriginal { get; set; }
+        public int CantidadADevolver { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            factura = await Http.GetFromJsonAsync<Factura>($"api/Facturas/{FacturaId}");
+
+            if (factura != null)
+            {
+                notaCredito.FacturaId = FacturaId;
+
+                var ncsPrevias = await Http.GetFromJsonAsync<List<NotaCredito>>($"api/NotasCredito/PorFactura/{FacturaId}");
+                decimal devuelto = ncsPrevias?.Where(n => n.EstadoSRI == "AUTORIZADO").Sum(n => n.Total) ?? 0;
+                saldoDisponible = factura.Total - devuelto;
+
+                // Cargar items usando el IVA real del producto
+                foreach (var det in factura.Detalles)
+                {
+                    listaItemsUI.Add(new ItemNotaCreditoUI
+                    {
+                        ProductoId = det.ProductoId,
+                        NombreProducto = det.Producto?.Descripcion ?? "Item",
+                        PrecioUnitario = det.PrecioUnitario,
+                        // AQUÍ CAPTURAMOS EL IVA REAL (0, 12, 15, etc)
+                        PorcentajeIva = det.Producto?.TarifaIva?.Porcentaje ?? 0m,
+                        CantidadOriginal = det.Cantidad,
+                        CantidadADevolver = 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void CalcularTotales()
+    {
+        totalCalculado = 0;
+
+        foreach (var item in listaItemsUI)
+        {
+            if (item.CantidadADevolver > 0)
+            {
+                decimal subtotal = item.CantidadADevolver * item.PrecioUnitario;
+                decimal iva = subtotal * (item.PorcentajeIva / 100m);
+                totalCalculado += (subtotal + iva);
+            }
+        }
+    }
+
+    private async Task GuardarNotaCredito()
+    {
+        mensajeError = "";
+
+        // Recalcular por seguridad
+        CalcularTotales();
+
+        var itemsAEnviar = listaItemsUI
+            .Where(x => x.CantidadADevolver > 0)
+            .Select(x => new ItemNotaCreditoDto
+            {
+                ProductoId = x.ProductoId,
+                Cantidad = x.CantidadADevolver
+            })
+            .ToList();
+
+        if (!itemsAEnviar.Any())
+        {
+            mensajeError = "Debe seleccionar al menos un producto para devolver.";
+            return;
+        }
+
+        foreach (var item in listaItemsUI)
+        {
+            if (item.CantidadADevolver > item.CantidadOriginal)
+            {
+                mensajeError = $"No puede devolver más cantidad de la facturada en: {item.NombreProducto}";
+                return;
+            }
+        }
+
+        // Validación con margen de error de 1 centavo por redondeo
+        if (totalCalculado > saldoDisponible + 0.01m)
+        {
+            mensajeError = $"El monto total ({totalCalculado:N2}) supera el saldo disponible de la factura ({saldoDisponible:N2}).";
+            return;
+        }
+
+        isSubmitting = true;
+        notaCredito.Detalles = itemsAEnviar;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/NotasCredito", notaCredito);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("alert", "Nota de Crédito generada y enviada al SRI correctamente.");
+                NavManager.NavigateTo("facturas");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                mensajeError = $"Error del servidor: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error de conexión: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

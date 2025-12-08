@@ -2,10 +2,9 @@
 
 namespace SistemaFacturacionSRI.Infrastructure.SRI.Models
 {
-    // ==========================================
-    // 1. MODELOS PARA RESPUESTA DE RECEPCIÓN
-    // ==========================================
-    [XmlRoot("RespuestaSolicitud")]
+    // 1. RESPUESTA DE RECEPCIÓN
+    // IMPORTANTE: El XmlRoot debe ser "RespuestaRecepcionComprobante"
+    [XmlRoot("RespuestaRecepcionComprobante")]
     public class RespuestaSolicitud
     {
         [XmlElement("estado")]
@@ -41,10 +40,9 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Models
         public string Tipo { get; set; }
     }
 
-    // ==========================================
-    // 2. MODELOS PARA RESPUESTA DE AUTORIZACIÓN
-    // ==========================================
-    [XmlRoot("RespuestaAutorizacion")]
+    // 2. RESPUESTA DE AUTORIZACIÓN
+    // IMPORTANTE: El XmlRoot debe ser "RespuestaAutorizacionComprobante"
+    [XmlRoot("RespuestaAutorizacionComprobante")]
     public class RespuestaAutorizacion
     {
         [XmlElement("numeroComprobantes")]
@@ -70,7 +68,7 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Models
         public string Ambiente { get; set; }
 
         [XmlElement("comprobante")]
-        public string ComprobanteXML { get; set; } // El XML firmado devuelto
+        public string ComprobanteXML { get; set; }
 
         [XmlArray("mensajes")]
         [XmlArrayItem("mensaje")]

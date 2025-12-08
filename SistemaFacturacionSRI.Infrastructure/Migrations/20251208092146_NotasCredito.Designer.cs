@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SistemaFacturacionSRI.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using SistemaFacturacionSRI.Infrastructure.Persistence;
 namespace SistemaFacturacionSRI.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251208092146_NotasCredito")]
+    partial class NotasCredito
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -330,10 +333,6 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
                         .HasMaxLength(49)
                         .HasColumnType("nvarchar(49)");
 
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("EstadoSRI")
                         .HasColumnType("nvarchar(max)");
 
@@ -621,7 +620,7 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.NotaCredito", b =>
                 {
                     b.HasOne("SistemaFacturacionSRI.Domain.Entities.Factura", "Factura")
-                        .WithMany("NotasCredito")
+                        .WithMany()
                         .HasForeignKey("FacturaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -643,8 +642,6 @@ namespace SistemaFacturacionSRI.Infrastructure.Migrations
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.Factura", b =>
                 {
                     b.Navigation("Detalles");
-
-                    b.Navigation("NotasCredito");
                 });
 
             modelBuilder.Entity("SistemaFacturacionSRI.Domain.Entities.NotaCredito", b =>

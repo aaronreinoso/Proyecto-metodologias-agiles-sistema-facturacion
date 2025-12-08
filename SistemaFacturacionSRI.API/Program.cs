@@ -50,6 +50,8 @@ builder.Services.AddScoped<SriSoapClient>();
 
 builder.Services.AddHostedService<SriRetryWorker>();
 
+builder.Services.AddScoped<NotaCreditoService>();
+
 
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(x =>

@@ -17,7 +17,10 @@ namespace SistemaFacturacionSRI.Infrastructure.Persistence
         // NUEVO: Tabla de Tarifas de IVA
         public DbSet<TarifaIva> TarifasIva { get; set; }
 
-     
+        public DbSet<NotaCredito> NotasCredito { get; set; }
+        public DbSet<DetalleNotaCredito> DetallesNotaCredito { get; set; }
+
+
 
         public DbSet<AjusteInventario> AjustesInventario { get; set; }
 
