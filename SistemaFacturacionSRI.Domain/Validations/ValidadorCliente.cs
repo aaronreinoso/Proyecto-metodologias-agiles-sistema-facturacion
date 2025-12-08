@@ -170,5 +170,22 @@ namespace SistemaFacturacionSRI.Domain.Validations
 
             return resultado == verificador;
         }
+
+
+        // Asegúrate de que tu constante o chequeo sea estricto
+        public const decimal LIMITE_CONSUMIDOR_FINAL = 50.00m;
+
+        public static ResultadoValidacion ValidarReglasFacturacion(string identificacion, decimal totalFactura, string email)
+        {
+            // La condición es: MAYOR QUE (>), no mayor o igual (>=)
+            if (identificacion == "9999999999999" && totalFactura > LIMITE_CONSUMIDOR_FINAL)
+            {
+                return ResultadoValidacion.Error("El monto supera el límite de $50 para Consumidor Final.");
+            }
+            // ...
+            return ResultadoValidacion.Ok();
+        }
+
+
     }
 }

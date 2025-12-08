@@ -829,6 +829,22 @@
             return;
         }
 
+
+        // --- VALIDACIÓN DE $50.00 (NUEVO CÓDIGO) ---
+        // 1. Calculamos el total exacto (Subtotal + IVA)
+        // Nota: Asegúrate de usar el mismo redondeo que usas visualmente si es necesario
+        decimal totalCalculado = carrito.Sum(x => x.Subtotal) + CalcularIVA();
+
+        // 2. Verificamos la regla
+        // "9999999999999" es el ID de consumidor final en tu sistema
+        if (clienteActual.Identificacion == "9999999999999" && totalCalculado > 50m)
+        {
+            facturaErrorMessage = $"El monto total (${totalCalculado:F2}) supera los $50.00. Normativa SRI exige datos reales del cliente (RUC o Cédula).";
+            return; // Detenemos el proceso aquí, no se llama al servidor
+        }
+        // ---------------------------------------------
+
+
         isSubmitting = true;
         facturaErrorMessage = null;
 
