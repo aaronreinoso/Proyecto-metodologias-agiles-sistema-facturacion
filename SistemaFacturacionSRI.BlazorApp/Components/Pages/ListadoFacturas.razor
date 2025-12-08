@@ -1,0 +1,206 @@
+﻿@page "/facturas"
+@using SistemaFacturacionSRI.Domain.DTOs.Facturas
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📑 Historial de Facturas</h2>
+        <a href="/facturacion" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Nueva Factura
+        </a>
+    </div>
+
+    <div class="card p-3 mb-4 shadow-sm bg-light">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Buscador Global</label>
+                <input type="text" class="form-control" placeholder="Nombre, RUC o Nro Factura..."
+                       @bind="TerminoBusqueda" @bind:event="oninput" @onkeyup="AplicarFiltros" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Desde</label>
+                <input type="date" class="form-control" @bind="FechaInicio" @bind:after="AplicarFiltros" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Hasta</label>
+                <input type="date" class="form-control" @bind="FechaFin" @bind:after="AplicarFiltros" />
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Estado SRI</label>
+                <select class="form-select" @bind="EstadoFiltro" @bind:after="AplicarFiltros">
+                    <option value="">Todos</option>
+                    <option value="AUTORIZADO">Autorizadas</option>
+                    <option value="PENDIENTE">Pendientes</option>
+                    <option value="RECHAZADA">Rechazadas</option>
+                    <option value="DEVUELTA">Devueltas</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-secondary w-100" @onclick="LimpiarFiltros">
+                    Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive shadow-sm bg-white rounded">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-primary text-white">
+                <tr>
+                    <th>Nro. Factura</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                    <th>Estado SRI</th>
+                    <th>Mensaje / Error</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (FacturasFiltradas == null)
+                {
+                    <tr><td colspan="7" class="text-center p-4">Cargando facturas...</td></tr>
+                }
+                else if (!FacturasFiltradas.Any())
+                {
+                    <tr><td colspan="7" class="text-center p-4">No se encontraron registros.</td></tr>
+                }
+                else
+                {
+                    @foreach (var f in FacturasFiltradas)
+                    {
+                        <tr>
+                            <td class="fw-bold">@f.NumeroFactura</td>
+                            <td>@f.FechaEmision.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                <div class="fw-bold">@f.ClienteNombre</div>
+                                <small class="text-muted">@f.ClienteIdentificacion</small>
+                            </td>
+                            <td class="fw-bold text-success">$@f.Total.ToString("N2")</td>
+                            <td>
+                                <span class="badge @ObtenerClaseBadge(f.EstadoSRI)">
+                                    @f.EstadoSRI
+                                </span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(f.MensajeErrorSRI))
+                                {
+                                    <span class="text-danger small" title="@f.MensajeErrorSRI">
+                                        ⚠️ @Recortar(f.MensajeErrorSRI, 30)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a href="@($"/api/facturas/{f.Id}/pdf")" target="_blank"
+                                   class="btn btn-sm btn-danger" title="Ver PDF">
+                                    📄 PDF
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<FacturaResumenDto> TodasLasFacturas = new();
+    private List<FacturaResumenDto> FacturasFiltradas = null; // null al inicio para mostrar "Cargando"
+
+    private string TerminoBusqueda { get; set; } = "";
+    private DateTime? FechaInicio { get; set; }
+    private DateTime? FechaFin { get; set; }
+    private string EstadoFiltro { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            // CORRECCIÓN: Usamos HttpClient para llamar a la API
+            var resultado = await Http.GetFromJsonAsync<List<FacturaResumenDto>>("api/facturas");
+
+            if (resultado != null)
+            {
+                TodasLasFacturas = resultado;
+                AplicarFiltros();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar facturas: {ex.Message}");
+            // Opcional: Mostrar alerta JS
+            FacturasFiltradas = new List<FacturaResumenDto>(); // Lista vacía para quitar el "Cargando"
+        }
+    }
+
+    private void AplicarFiltros()
+    {
+        var query = TodasLasFacturas.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(TerminoBusqueda))
+        {
+            var term = TerminoBusqueda.ToLower();
+            query = query.Where(f =>
+                (f.NumeroFactura ?? "").ToLower().Contains(term) ||
+                (f.ClienteNombre ?? "").ToLower().Contains(term) ||
+                (f.ClienteIdentificacion ?? "").Contains(term)
+            );
+        }
+
+        if (FechaInicio.HasValue)
+        {
+            query = query.Where(f => f.FechaEmision.Date >= FechaInicio.Value.Date);
+        }
+
+        if (FechaFin.HasValue)
+        {
+            query = query.Where(f => f.FechaEmision.Date <= FechaFin.Value.Date);
+        }
+
+        if (!string.IsNullOrEmpty(EstadoFiltro))
+        {
+            query = query.Where(f => f.EstadoSRI == EstadoFiltro);
+        }
+
+        FacturasFiltradas = query.OrderByDescending(f => f.FechaEmision).ToList();
+    }
+
+    private void LimpiarFiltros()
+    {
+        TerminoBusqueda = "";
+        FechaInicio = null;
+        FechaFin = null;
+        EstadoFiltro = "";
+        AplicarFiltros();
+    }
+
+    private string ObtenerClaseBadge(string estado) => estado switch
+    {
+        "AUTORIZADO" => "bg-success",
+        "PENDIENTE" => "bg-warning text-dark",
+        "RECHAZADA" => "bg-danger",
+        "DEVUELTA" => "bg-secondary",
+        _ => "bg-light text-dark"
+    };
+
+    private string Recortar(string texto, int largo)
+    {
+        if (string.IsNullOrEmpty(texto)) return "";
+        return texto.Length > largo ? texto.Substring(0, largo) + "..." : texto;
+    }
+}

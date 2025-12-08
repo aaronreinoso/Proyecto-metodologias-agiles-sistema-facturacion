@@ -220,5 +220,48 @@ namespace SistemaFacturacionSRI.Infrastructure.Services
                 throw;
             }
         }
-    }
+
+
+
+
+
+    
+
+
+
+    // ... (resto del código anterior) ...
+
+        public async Task<List<FacturaResumenDto>> ObtenerHistorialFacturasAsync()
+        {
+            // Recuperamos config para armar el número de factura visual (Establecimiento-Punto)
+            var config = await _context.ConfiguracionesSRI.FirstOrDefaultAsync();
+            string serie = config != null
+                ? $"{config.CodigoEstablecimiento}-{config.CodigoPuntoEmision}"
+                : "000-000";
+
+            // Consultamos la BD
+            var facturas = await _context.Facturas
+                .Include(f => f.Cliente) // Importante para ver el nombre
+                .OrderByDescending(f => f.FechaEmision) // Las más nuevas primero
+                .Select(f => new FacturaResumenDto
+                {
+                    Id = f.Id,
+                    // Formateamos secuencial a 9 dígitos
+                    NumeroFactura = $"{serie}-{f.Id.ToString().PadLeft(9, '0')}",
+
+                    ClienteNombre = f.Cliente != null ? f.Cliente.NombreCompleto : "Consumidor Final",
+                    ClienteIdentificacion = f.Cliente != null ? f.Cliente.Identificacion : "9999999999999",
+                    FechaEmision = f.FechaEmision,
+                    Total = f.Total,
+
+                    EstadoSRI = f.EstadoSRI ?? "PENDIENTE",
+                    MensajeErrorSRI = f.MensajeErrorSRI, // Aquí cargamos el error si existe
+                    ClaveAcceso = f.ClaveAcceso,
+                    TieneXml = !string.IsNullOrEmpty(f.XmlGenerado)
+                })
+                .ToListAsync();
+
+            return facturas;
+        }
+    } // Fin de la clase
 }

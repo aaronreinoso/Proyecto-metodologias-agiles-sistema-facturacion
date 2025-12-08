@@ -31,5 +31,31 @@ namespace SistemaFacturacionSRI.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetHistorial()
+        {
+            try
+            {
+                var historial = await _facturaService.ObtenerHistorialFacturasAsync();
+                return Ok(historial);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno: " + ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/pdf")]
+        public IActionResult DescargarPdf(int id)
+        {
+            // NOTA: Como no tenemos generador de PDF real aún, 
+            // retornamos un texto para que el botón no de error 404.
+            // A futuro aquí se devuelven los bytes del archivo.
+            return Ok($"Aquí se descargará el PDF de la factura #{id} cuando instales una librería de PDF.");
+        }
+
+
+
     }
 }
