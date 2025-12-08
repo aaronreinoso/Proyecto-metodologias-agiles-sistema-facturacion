@@ -79,14 +79,17 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
 
         private FacturaSRI MapearFactura(Factura f, ConfiguracionSRI config, string claveAcceso, string ambiente, string secuencial)
         {
+            // Usamos el tipo de redondeo solicitado (Half-Up)
+            const MidpointRounding RoundingType = MidpointRounding.AwayFromZero;
+
             var xml = new FacturaSRI();
-            xml.Version = "1.1.0"; // Versión vigente del esquema SRI
+            xml.Version = "1.1.0";
 
             // --- Info Tributaria ---
             xml.InfoTributaria = new InfoTributaria
             {
                 Ambiente = ambiente,
-                TipoEmision = "1", // Normal
+                TipoEmision = "1",
                 RazonSocial = config.RazonSocial,
                 NombreComercial = config.NombreComercial ?? config.RazonSocial,
                 Ruc = config.Ruc,
@@ -107,17 +110,25 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
                 ContribuyenteEspecial = config.ContribuyenteEspecial,
 
                 // Lógica tipo ID
-                TipoIdentificacionComprador = f.Cliente.Identificacion.Length == 13 ? "04" : "05",
+                TipoIdentificacionComprador =
+                    f.Cliente.Identificacion == "9999999999999" ? "07" :
+                    f.Cliente.Identificacion.Length == 13 ? "04" :
+                    "05",
+
                 RazonSocialComprador = f.Cliente.NombreCompleto,
                 IdentificacionComprador = f.Cliente.Identificacion,
-                TotalSinImpuestos = f.Subtotal,
+                TotalSinImpuestos = f.Subtotal, // El total sin impuestos puede ir con más decimales.
                 TotalDescuento = 0,
                 Propina = 0,
-                ImporteTotal = f.Total,
+
+                // --- CAMBIO CRITICO 1: Importe Total a 2 decimales (Half-Up) ---
+                ImporteTotal = Math.Round(f.Total, 2, RoundingType),
+
                 Moneda = "DOLAR",
                 Pagos = new List<PagoSRI> {
-                    new PagoSRI { FormaPago = "01", Total = f.Total }
-                }
+            // --- CAMBIO CRITICO 2: Total de Pago debe coincidir con el Importe Total redondeado ---
+            new PagoSRI { FormaPago = "01", Total = Math.Round(f.Total, 2, RoundingType) }
+        }
             };
 
             // --- Totales de Impuestos ---
@@ -125,10 +136,11 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
                 .GroupBy(d => d.Producto.TarifaIva)
                 .Select(g => new TotalImpuesto
                 {
-                    Codigo = "2", // IVA
+                    Codigo = "2",
                     CodigoPorcentaje = g.Key.CodigoSRI,
                     BaseImponible = g.Sum(x => x.Subtotal),
-                    Valor = g.Sum(x => x.Subtotal * (x.Producto.TarifaIva.Porcentaje / 100m)),
+                    // --- CAMBIO CRITICO 3: Valor del impuesto a 2 decimales (Half-Up) ---
+                    Valor = Math.Round(g.Sum(x => x.Subtotal * (x.Producto.TarifaIva.Porcentaje / 100m)), 2, RoundingType),
                     Tarifa = g.Key.Porcentaje
                 }).ToList();
 
@@ -149,53 +161,34 @@ namespace SistemaFacturacionSRI.Infrastructure.SRI.Services
 
                 detalleXml.Impuestos.Add(new Impuesto
                 {
-                    Codigo = "2", // IVA
+                    Codigo = "2",
                     CodigoPorcentaje = det.Producto.TarifaIva.CodigoSRI,
                     Tarifa = det.Producto.TarifaIva.Porcentaje,
                     BaseImponible = det.Subtotal,
-                    Valor = det.Subtotal * (det.Producto.TarifaIva.Porcentaje / 100m)
+                    // --- CAMBIO CRITICO 4: Valor impuesto por ítem a 2 decimales (Half-Up) ---
+                    Valor = Math.Round(det.Subtotal * (det.Producto.TarifaIva.Porcentaje / 100m), 2, RoundingType)
                 });
 
                 xml.Detalles.Add(detalleXml);
             }
 
-            // --- INFO ADICIONAL (CORREO Y DIRECCIÓN DEL CLIENTE) ---
-            // Aquí inyectamos los datos para que salgan en el XML y RIDE
-
-            // 1. Dirección (Si existe en la BD)
+            // --- INFO ADICIONAL ---
             if (!string.IsNullOrEmpty(f.Cliente.Direccion))
             {
-                xml.InfoAdicional.Add(new CampoAdicional
-                {
-                    Nombre = "Dirección",
-                    Valor = f.Cliente.Direccion
-                });
+                xml.InfoAdicional.Add(new CampoAdicional { Nombre = "Dirección", Valor = f.Cliente.Direccion });
             }
-
-            // 2. Email (Si existe en la BD)
             if (!string.IsNullOrEmpty(f.Cliente.Email))
             {
-                xml.InfoAdicional.Add(new CampoAdicional
-                {
-                    Nombre = "Email",
-                    Valor = f.Cliente.Email
-                });
+                xml.InfoAdicional.Add(new CampoAdicional { Nombre = "Email", Valor = f.Cliente.Email });
             }
-
-            // 3. Teléfono (Si tu entidad Cliente tiene este campo, descomenta esto)
-            
             if (!string.IsNullOrEmpty(f.Cliente.Telefono))
             {
-                xml.InfoAdicional.Add(new CampoAdicional 
-                { 
-                    Nombre = "Teléfono", 
-                    Valor = f.Cliente.Telefono 
-                });
+                xml.InfoAdicional.Add(new CampoAdicional { Nombre = "Teléfono", Valor = f.Cliente.Telefono });
             }
-            
 
             return xml;
         }
+
 
         private void FirmarXml(XmlDocument xmlDoc, byte[] firmaBytes, string password)
         {
