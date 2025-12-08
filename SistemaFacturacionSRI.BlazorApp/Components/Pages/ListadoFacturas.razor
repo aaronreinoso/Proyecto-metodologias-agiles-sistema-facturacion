@@ -99,11 +99,20 @@
                                     <span class="text-muted">-</span>
                                 }
                             </td>
+
                             <td class="text-center">
-                                <a href="@($"/api/facturas/{f.Id}/pdf")" target="_blank"
-                                   class="btn btn-sm btn-danger" title="Ver PDF">
-                                    📄 PDF
+                                <a href="@($"/api/facturas/{f.Id}/pdf")"
+                                   target="_blank"
+                                   class="btn btn-sm btn-danger me-1"
+                                   title="Ver PDF">
+                                    <i class="bi bi-file-pdf"></i>
                                 </a>
+
+                                <button class="btn btn-sm btn-primary"
+                                        @onclick="() => ReenviarCorreo(f.Id)"
+                                        title="Enviar al correo del cliente">
+                                    <i class="bi bi-envelope"></i>
+                                </button>
                             </td>
                         </tr>
                     }
@@ -115,7 +124,7 @@
 
 @code {
     private List<FacturaResumenDto> TodasLasFacturas = new();
-    private List<FacturaResumenDto> FacturasFiltradas = null; // null al inicio para mostrar "Cargando"
+    private List<FacturaResumenDto> FacturasFiltradas = null;
 
     private string TerminoBusqueda { get; set; } = "";
     private DateTime? FechaInicio { get; set; }
@@ -131,7 +140,6 @@
     {
         try
         {
-            // CORRECCIÓN: Usamos HttpClient para llamar a la API
             var resultado = await Http.GetFromJsonAsync<List<FacturaResumenDto>>("api/facturas");
 
             if (resultado != null)
@@ -143,8 +151,7 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar facturas: {ex.Message}");
-            // Opcional: Mostrar alerta JS
-            FacturasFiltradas = new List<FacturaResumenDto>(); // Lista vacía para quitar el "Cargando"
+            FacturasFiltradas = new List<FacturaResumenDto>();
         }
     }
 
@@ -163,19 +170,13 @@
         }
 
         if (FechaInicio.HasValue)
-        {
             query = query.Where(f => f.FechaEmision.Date >= FechaInicio.Value.Date);
-        }
 
         if (FechaFin.HasValue)
-        {
             query = query.Where(f => f.FechaEmision.Date <= FechaFin.Value.Date);
-        }
 
         if (!string.IsNullOrEmpty(EstadoFiltro))
-        {
             query = query.Where(f => f.EstadoSRI == EstadoFiltro);
-        }
 
         FacturasFiltradas = query.OrderByDescending(f => f.FechaEmision).ToList();
     }
@@ -202,5 +203,27 @@
     {
         if (string.IsNullOrEmpty(texto)) return "";
         return texto.Length > largo ? texto.Substring(0, largo) + "..." : texto;
+    }
+
+    // ===============================================================
+    // NUEVA FUNCIÓN: REENVIAR FACTURA AL CORREO DEL CLIENTE
+    // ===============================================================
+    private async Task ReenviarCorreo(int id)
+    {
+        var confirm = await JS.InvokeAsync<bool>("confirm",
+            "¿Deseas reenviar la factura al correo del cliente?");
+        if (!confirm) return;
+
+        var response = await Http.PostAsync($"api/facturas/{id}/reenviar-email", null);
+
+        if (response.IsSuccessStatusCode)
+        {
+            await JS.InvokeVoidAsync("alert", "✅ Correo enviado correctamente.");
+        }
+        else
+        {
+            var msj = await response.Content.ReadAsStringAsync();
+            await JS.InvokeVoidAsync("alert", "❌ Error: " + msj);
+        }
     }
 }

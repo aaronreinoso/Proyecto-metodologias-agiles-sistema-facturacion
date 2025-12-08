@@ -2,10 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using SistemaFacturacionSRI.Application.Interfaces;
 using SistemaFacturacionSRI.Infrastructure.Persistence; // La ubicaci�n de tu AppDbContext
 using SistemaFacturacionSRI.Infrastructure.Services; // para ProductoService y ClienteService
+using SistemaFacturacionSRI.Infrastructure.Services.Pdf;
 using SistemaFacturacionSRI.Infrastructure.SRI.Services;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
@@ -36,6 +39,9 @@ builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IProductoService, ProductoService>();
 builder.Services.AddScoped<ILoteProductoService, LoteProductoService>();
 builder.Services.AddScoped<IFacturaService, FacturaService>();
+
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // --- NUEVOS SERVICIOS DE FACTURACI�N Y SRI ---
 builder.Services.AddScoped<ClaveAccesoService>();
@@ -73,3 +79,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
